@@ -1,0 +1,50 @@
+CREATE DATABASE DuangDee COLLATE utf8_general_ci;
+USE DuangDee;
+
+SELECT * FROM RegisType;
+SELECT * FROM UsersType;
+SELECT * FROM UsersGender;
+SELECT * FROM Users;
+
+CREATE TABLE RegisType(
+	RegisType_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    RegisType_Name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE UsersType(
+	UsersType_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    UsersType_Name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE UsersGender(
+	UsersGender_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    UsersGender_Name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Users(
+	Users_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Users_Username VARCHAR(255) NOT NULL,
+    Users_Password VARCHAR(255) NOT NULL,
+    Users_FirstName VARCHAR(255),
+    Users_LastName VARCHAR(255),
+    Users_Email VARCHAR(255) NOT NULL,
+    Users_Phone VARCHAR(12),
+    Users_BirthDate DATETIME,
+    Users_RegisDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Users_ImageFile VARCHAR(255),
+    UsersGender_ID INT,
+    RegisType_ID INT DEFAULT 1,
+    UsersType_ID INT DEFAULT 1,
+    FOREIGN KEY (UsersGender_ID) REFERENCES UsersGender(UsersGender_ID),
+    FOREIGN KEY (RegisType_ID) REFERENCES RegisType(RegisType_ID),
+    FOREIGN KEY (UsersType_ID) REFERENCES UsersType(UsersType_ID)
+);
+
+INSERT INTO RegisType (RegisType_Name)
+VALUES('GENERAL'),('GMAIL');
+
+INSERT INTO UsersType (UsersType_Name)
+VALUES('USER'),('ADMIN');
+
+INSERT INTO UsersGender (UsersGender_Name)
+VALUES('MALE'),('FEMALE'),('OTHER');
