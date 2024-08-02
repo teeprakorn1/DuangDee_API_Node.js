@@ -6,11 +6,6 @@ SELECT * FROM UsersType;
 SELECT * FROM UsersGender;
 SELECT * FROM Users;
 
-DROP TABLE RegisType;
-DROP TABLE UsersType;
-DROP TABLE UsersGender;
-DROP TABLE Users;
-
 CREATE TABLE RegisType(
 	RegisType_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     RegisType_Name VARCHAR(255) NOT NULL
