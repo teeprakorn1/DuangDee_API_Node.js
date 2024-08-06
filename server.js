@@ -5,12 +5,14 @@ const rateLimit = require('express-rate-limit');
 const app = express()
 const port = 3000
 
+require('dotenv').config();
+
 const db = mysql.createConnection(
     {
-        host: "localhost",
-        user: "root",
-        password: "Cs12345678",
-        database: "DuangDee"
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME,
     }
 )
 db.connect();
