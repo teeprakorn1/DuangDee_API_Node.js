@@ -23,6 +23,7 @@ app.use(express.urlencoded({extended: true}))
 
 let otpStorage_Resets = {};
 let otpStorage_Register = {};
+const saltRounds = 14;
 
 //Login Limit
 const loginRateLimiter = rateLimit({
@@ -49,7 +50,6 @@ app.post('/api/register', async (req, res) => {
     if (result[0].count > 0) {
       res.send({ message: "Username or Email already exists",status: false });
     }else{
-      const saltRounds = 10;
       const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
       const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_Password,Users_FirstName,"+
@@ -148,13 +148,13 @@ app.post('/api/request-password', async (req, res) => {
     return res.send({ message: 'Email is required', status: false });
   }
 
-  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE OR Users_Email = ?";
+  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ?";
   db.query(sql_check_email, [Users_Email], async (err, result) => {
   if (err) throw err;
 
     if (result[0].count > 0) {
       const currentOTP = generateOTP();
-      otpStorage_Resets[Users_Email] = generateOTP();
+      otpStorage_Resets[Users_Email] = currentOTP;
 
       try {
         await sendOTPEmail(Users_Email, currentOTP);
@@ -179,7 +179,6 @@ app.post('/api/reset-password', async (req, res) => {
   if (otpStorage_Resets[Users_Email] == OTP) {
     delete otpStorage_Resets[Users_Email];
 
-    const saltRounds = 10;
     const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
     const sql = "UPDATE Users SET Users_Password = ? WHERE Users_Email = ?";
@@ -195,18 +194,17 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 //API Add Admin 
-// app.post('/api/test', async (req, res) => {
-//   const { Users_Password } = req.body;
+app.post('/api/test', async (req, res) => {
+  const { Users_Password } = req.body;
 
-//   const saltRounds = 10;
-//   const NewPassword = await bcrypt.hash(Users_Password ,saltRounds);
+  const NewPassword = await bcrypt.hash(Users_Password ,saltRounds);
 
-//   const sql = "INSERT INTO Users(Users_Username,Users_Password,Users_FirstName,Users_LastName,Users_Email,UsersGender_ID,UsersType_ID)VALUES('Admin',?,'Admin_First','Admin_Last','DuangDee.Admin@gmail.com','3','2');";
-//         db.query(sql, [NewPassword], async(err) => {
-//         if (err) throw err;
-//             res.send({ message: "User registered successfully",status: true });
-//         });
-// });
+  const sql = "INSERT INTO Users(Users_Username,Users_Password,Users_FirstName,Users_LastName,Users_Email,UsersGender_ID,UsersType_ID)VALUES('Admin',?,'Admin_First','Admin_Last','duangdee.app@gmail.com','3','2');";
+        db.query(sql, [NewPassword], async(err) => {
+        if (err) throw err;
+            res.send({ message: "User registered successfully",status: true });
+        });
+});
 
 app.listen(port, function() {
     console.log(`Example app listening on port ${port}`)
