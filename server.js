@@ -2,6 +2,8 @@ const express = require('express')
 const mysql = require('mysql2')
 const bcrypt = require('bcrypt')
 const rateLimit = require('express-rate-limit');
+const sendOTPEmail = require('./OTP_Email/SendEmail');
+const generateOTP = require('./OTP_Email/OTP_Generator');
 const app = express()
 const port = 3000
 
@@ -19,6 +21,8 @@ db.connect();
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
+let otpStorage = {};
+
 //Login Limit
 const loginRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,// 1 minute
@@ -31,6 +35,11 @@ app.post('/api/register', async (req, res) => {
   const { Users_Email,Users_Username, Users_Password, Users_FirstName,
      Users_LastName, Users_Phone, Users_BirthDate,
      UsersGender_ID,RegisType_ID} = req.body;
+
+  if (!Users_Email || !Users_Username || !Users_Password || !Users_FirstName 
+    || !Users_LastName || !Users_Phone || !Users_BirthDate || !UsersGender_ID || !RegisType_ID) {
+    return res.send({ message: 'Fill in the parameter data correctly as specified.', status: false });
+  }
 
   const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ?";
   db.query(sql_check_username, [Users_Username,Users_Email], async (err, result) => {
@@ -62,6 +71,10 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login',loginRateLimiter, async (req, res) => {
   const { Users_Username, Users_Password } = req.body;
 
+  if (!Users_Username || !Users_Password) {
+    return res.send({ message: 'Username and Password are required', status: false });
+  }
+
   const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ?";
   db.query(sql_check_username, [Users_Username,Users_Username], async (err, result) => {
   if (err) throw err;
@@ -90,6 +103,39 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
       res.send({ message: "User not found",status: false });
     }
   });
+});
+
+app.post('/api/send-otp', async (req, res) => {
+  const { Users_Email } = req.body;
+  
+  if (!Users_Email) {
+    return res.send({ message:'Email is required',status: false });
+  }
+
+  const currentOTP = generateOTP();
+  otpStorage[Users_Email] = currentOTP;
+
+  try {
+    await sendOTPEmail(Users_Email, currentOTP);
+    res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
+  } catch (error) {
+    res.send({ message:'Failed to send OTP',status: false });
+  }
+});
+
+app.post('/api/verify-otp', (req, res) => {
+  const { Users_Email, OTP } = req.body;
+
+  if (!Users_Email || !OTP) {
+    return res.send({ message: 'Email and OTP are required', status: false });
+  }
+
+  if (otpStorage[Users_Email] == OTP) {
+    delete otpStorage[Users_Email];
+    res.send({ message:'OTP Verified Successfully',status: true });
+  } else {
+    res.send({ message:'Invalid OTP',status: false });
+  }
 });
 
 //Add Admin APL
