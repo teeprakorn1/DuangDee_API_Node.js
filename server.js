@@ -21,7 +21,8 @@ db.connect();
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
-let otpStorage = {};
+let otpStorage_Resets = {};
+let otpStorage_Register = {};
 
 //Login Limit
 const loginRateLimiter = rateLimit({
@@ -30,7 +31,7 @@ const loginRateLimiter = rateLimit({
   message: { message: "Many Login",status: false }
 });
 
-//register
+//API Register
 app.post('/api/register', async (req, res) => {
   const { Users_Email,Users_Username, Users_Password, Users_FirstName,
      Users_LastName, Users_Phone, Users_BirthDate,
@@ -67,7 +68,7 @@ app.post('/api/register', async (req, res) => {
   });
 });
 
-//login
+//API Login
 app.post('/api/login',loginRateLimiter, async (req, res) => {
   const { Users_Username, Users_Password } = req.body;
 
@@ -105,6 +106,7 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
   });
 });
 
+//API Send OTP
 app.post('/api/send-otp', async (req, res) => {
   const { Users_Email } = req.body;
   
@@ -113,7 +115,7 @@ app.post('/api/send-otp', async (req, res) => {
   }
 
   const currentOTP = generateOTP();
-  otpStorage[Users_Email] = currentOTP;
+  otpStorage_Register[Users_Email] = currentOTP;
 
   try {
     await sendOTPEmail(Users_Email, currentOTP);
@@ -123,6 +125,7 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
+//API Verify OTP
 app.post('/api/verify-otp', (req, res) => {
   const { Users_Email, OTP } = req.body;
 
@@ -130,15 +133,68 @@ app.post('/api/verify-otp', (req, res) => {
     return res.send({ message: 'Email and OTP are required', status: false });
   }
 
-  if (otpStorage[Users_Email] == OTP) {
-    delete otpStorage[Users_Email];
+  if (otpStorage_Register[Users_Email] == OTP) {
+    delete otpStorage_Register[Users_Email];
     res.send({ message:'OTP Verified Successfully',status: true });
   } else {
     res.send({ message:'Invalid OTP',status: false });
   }
 });
 
-//Add Admin APL
+//API Request Password
+app.post('/api/request-password', async (req, res) => {
+  const { Users_Email}  = req.body;
+  if (!Users_Email) {
+    return res.send({ message: 'Email is required', status: false });
+  }
+
+  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE OR Users_Email = ?";
+  db.query(sql_check_email, [Users_Email], async (err, result) => {
+  if (err) throw err;
+
+    if (result[0].count > 0) {
+      const currentOTP = generateOTP();
+      otpStorage_Resets[Users_Email] = generateOTP();
+
+      try {
+        await sendOTPEmail(Users_Email, currentOTP);
+        res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
+      } catch (error) {
+        res.send({ message:'Failed to send OTP',status: false });
+      }
+    }else{
+      res.send({ message: "It Email not Register",status: false });
+    }
+  });
+});
+
+//API Reset Password
+app.post('/api/reset-password', async (req, res) => {
+  const { Users_Email, Users_Password, OTP } = req.body;
+
+  if (!Users_Email || !OTP) {
+    return res.send({ message: 'Email and OTP are required', status: false });
+  }
+
+  if (otpStorage_Resets[Users_Email] == OTP) {
+    delete otpStorage_Resets[Users_Email];
+
+    const saltRounds = 10;
+    const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
+
+    const sql = "UPDATE Users SET Users_Password = ? WHERE Users_Email = ?";
+    db.query(sql, [NewPassword,Users_Email], async (err) => {
+      if (err) throw err;
+      res.send({ message:'Password Reset Successfully',status: true });
+    });
+    
+  }else{
+    res.send({ message:'Invalid OTP',status: false });
+  }
+
+});
+
+//API Add Admin 
 // app.post('/api/test', async (req, res) => {
 //   const { Users_Password } = req.body;
 
