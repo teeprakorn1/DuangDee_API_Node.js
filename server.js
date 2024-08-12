@@ -1,11 +1,11 @@
 const express = require('express')
 const mysql = require('mysql2')
 const bcrypt = require('bcrypt')
-const rateLimit = require('express-rate-limit');
-const sendOTPEmail = require('./OTP_Email/SendEmail');
+const loginRateLimiter = require('./Rate_Limiter/Limit_Time');
 const generateOTP = require('./OTP_Email/OTP_Generator');
+const sendOTPEmail = require('./OTP_Email/SendEmail');
+const admin = require('./OAuth_Firebase/Google_SSO');
 const app = express()
-const port = 3000
 
 require('dotenv').config();
 
@@ -24,13 +24,6 @@ app.use(express.urlencoded({extended: true}))
 let otpStorage_Resets = {};
 let otpStorage_Register = {};
 const saltRounds = 14;
-
-//Login Limit
-const loginRateLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,// 1 minute
-  max: 5,// limit
-  message: { message: "Many Login",status: false }
-});
 
 //API Register
 app.post('/api/register', async (req, res) => {
@@ -63,6 +56,7 @@ app.post('/api/register', async (req, res) => {
         if (err) throw err;
 
         res.send({ message: "User registered successfully",status: true });
+
       });
     }
   });
@@ -206,6 +200,42 @@ app.post('/api/test', async (req, res) => {
         });
 });
 
-app.listen(port, function() {
-    console.log(`Example app listening on port ${port}`)
+// API Check Firebase UID
+app.post('/api/check-uid', async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.send({ message: 'UID is required', status: false });
+  }
+
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    res.send({ message: 'UID is valid', status: true, user: userRecord });
+  } catch (error) {
+    res.send({ message: 'Invalid UID or User not found', status: false });
+  }
+});
+
+
+//API Generate Access Token
+app.post('/api/generate-custom-token', async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.send({ message: 'UID is required', status: false });
+  }
+
+  try {
+    // Generate a custom token for the user
+    const customToken = await admin.auth().createCustomToken(uid);
+    res.send({ message: 'Custom token generated successfully', status: true, token: customToken });
+  } catch (error) {
+    res.send({ message: 'Error generating custom token', status: false, error: error.message });
+  }
+});
+
+
+
+app.listen(process.env.SERVER_PORT, function() {
+    console.log(`Example app listening on port ${process.env.SERVER_PORT}`)
 })
