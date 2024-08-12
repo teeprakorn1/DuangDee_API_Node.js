@@ -40,6 +40,26 @@ CREATE TABLE Users(
     FOREIGN KEY (UsersType_ID) REFERENCES UsersType(UsersType_ID)
 );
 
+CREATE TABLE AccessTokens (
+    Token_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Users_ID INT NOT NULL,
+    Token_Value VARCHAR(255) NOT NULL UNIQUE,
+    Expiration_Date DATETIME NOT NULL,
+    Created_At DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (Users_ID) REFERENCES Users(Users_ID)
+);
+
+CREATE TABLE GoogleTokens (
+    Token_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Users_ID INT NOT NULL,
+    Access_Token VARCHAR(255) NOT NULL UNIQUE,
+    Refresh_Token VARCHAR(255),
+    Token_Type VARCHAR(50),
+    Expires_In INT,
+    Created_At DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (Users_ID) REFERENCES Users(Users_ID)
+);
+
 INSERT INTO RegisType (RegisType_Name)
 VALUES('GENERAL'),('GMAIL');
 
