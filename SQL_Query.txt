@@ -23,41 +23,25 @@ CREATE TABLE UsersGender(
 
 CREATE TABLE Users(
 	Users_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    Users_Username VARCHAR(255) NOT NULL,
-    Users_Password VARCHAR(255) NOT NULL,
+    Users_Username VARCHAR(255),
+    Users_Password VARCHAR(255),
     Users_FirstName VARCHAR(255),
     Users_LastName VARCHAR(255),
-    Users_Email VARCHAR(255) NOT NULL,
+    Users_Email VARCHAR(255),
     Users_Phone VARCHAR(10),
     Users_BirthDate DATE,
     Users_RegisDate DATETIME DEFAULT CURRENT_TIMESTAMP,
     Users_ImageFile VARCHAR(255),
-    UsersGender_ID INT,
+    Users_Google_Uid VARCHAR(1024),
+    Users_LoginAttempt TINYINT DEFAULT 0,
+    Users_LastAttemptTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UsersGender_ID INT DEFAULT 3,
     RegisType_ID INT NOT NULL DEFAULT 1,
     UsersType_ID INT NOT NULL DEFAULT 1,
+    Users_IsActive BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (UsersGender_ID) REFERENCES UsersGender(UsersGender_ID),
     FOREIGN KEY (RegisType_ID) REFERENCES RegisType(RegisType_ID),
     FOREIGN KEY (UsersType_ID) REFERENCES UsersType(UsersType_ID)
-);
-
-CREATE TABLE AccessTokens (
-    Token_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    Users_ID INT NOT NULL,
-    Token_Value VARCHAR(255) NOT NULL UNIQUE,
-    Expiration_Date DATETIME NOT NULL,
-    Created_At DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (Users_ID) REFERENCES Users(Users_ID)
-);
-
-CREATE TABLE GoogleTokens (
-    Token_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    Users_ID INT NOT NULL,
-    Access_Token VARCHAR(255) NOT NULL UNIQUE,
-    Refresh_Token VARCHAR(255),
-    Token_Type VARCHAR(50),
-    Expires_In INT,
-    Created_At DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (Users_ID) REFERENCES Users(Users_ID)
 );
 
 INSERT INTO RegisType (RegisType_Name)
@@ -67,4 +51,4 @@ INSERT INTO UsersType (UsersType_Name)
 VALUES('USER'),('ADMIN');
 
 INSERT INTO UsersGender (UsersGender_Name)
-VALUES('MALE'),('FEMALE'),('LGBTQ+');
+VALUES('MALE'),('FEMALE'),('OTHER');

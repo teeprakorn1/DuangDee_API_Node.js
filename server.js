@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt')
 const loginRateLimiter = require('./Rate_Limiter/Limit_Time');
 const generateOTP = require('./OTP_Email/OTP_Generator');
 const sendOTPEmail = require('./OTP_Email/SendEmail');
+const GenerateTokens = require('./Jwt_Tokens/Tokens_Generator');
+const VerifyTokens = require('./Jwt_Tokens/Tokens_Verification');
 const admin = require('./OAuth_Firebase/Google_SSO');
 const app = express()
 
@@ -25,14 +27,16 @@ let otpStorage_Resets = {};
 let otpStorage_Register = {};
 const saltRounds = 14;
 
-//API Register
-app.post('/api/register', async (req, res) => {
-  const { Users_Email,Users_Username, Users_Password, Users_FirstName,
-     Users_LastName, Users_Phone, Users_BirthDate,
-     UsersGender_ID,RegisType_ID} = req.body;
+//Hello World API
+app.post('/api/hello',VerifyTokens, function(req, res){
+  res.send('Hello World!')
+  });
 
-  if (!Users_Email || !Users_Username || !Users_Password || !Users_FirstName 
-    || !Users_LastName || !Users_Phone || !Users_BirthDate || !UsersGender_ID || !RegisType_ID) {
+//API Register General
+app.post('/api/register', async (req, res) => {
+  const { Users_Email,Users_Username, Users_Password} = req.body;
+
+  if (!Users_Email || !Users_Username || !Users_Password ) {
     return res.send({ message: 'Fill in the parameter data correctly as specified.', status: false });
   }
 
@@ -45,14 +49,9 @@ app.post('/api/register', async (req, res) => {
     }else{
       const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
-      const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_Password,Users_FirstName,"+
-        "Users_LastName,Users_Phone,Users_BirthDate,"+
-        "UsersGender_ID,RegisType_ID)"+
-        "VALUES(?,?,?,?,?,?,?,?,?);";
+      const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_Password)VALUES(?,?,?)";
 
-      db.query(sql, [Users_Email, Users_Username, NewPassword, Users_FirstName,
-        Users_LastName, Users_Phone, Users_BirthDate,
-        UsersGender_ID,RegisType_ID], (err) => {
+      db.query(sql, [Users_Email, Users_Username, NewPassword], (err) => {
         if (err) throw err;
 
         res.send({ message: "User registered successfully",status: true });
@@ -62,7 +61,7 @@ app.post('/api/register', async (req, res) => {
   });
 });
 
-//API Login
+//API Login General
 app.post('/api/login',loginRateLimiter, async (req, res) => {
   const { Users_Username, Users_Password } = req.body;
 
@@ -70,22 +69,25 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
     return res.send({ message: 'Username and Password are required', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ?";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ? AND Users_IsActive = 1";
   db.query(sql_check_username, [Users_Username,Users_Username], async (err, result) => {
   if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql_get_password = "SELECT Users_Password FROM Users WHERE Users_Username = ? OR Users_Email = ?";
+      const sql_get_password = "SELECT Users_Password FROM Users WHERE Users_Username = ? OR Users_Email = ? AND Users_IsActive = 1";
       db.query(sql_get_password, [Users_Username,Users_Username], async (err, result) => {
         if (err) throw err;
         
         const isCorrect = await bcrypt.compare(Users_Password, result[0].Users_Password);
         if (isCorrect) {
-          const sql = "SELECT * FROM Users WHERE Users_Username = ? OR Users_Email = ?";
+          const sql = "SELECT * FROM Users WHERE Users_Username = ? OR Users_Email = ? AND Users_IsActive = 1";
           db.query(sql, [Users_Username,Users_Username], async (err, result) => {
             if (err) throw err;
 
             const user = result[0];
+            const Tokens = GenerateTokens(user.Users_ID, user.Users_Username, 1);
+
+            user['Token'] = Tokens;
             user['message'] = "Password Is Success"
             user['status'] = true
             res.send(user);
@@ -216,23 +218,22 @@ app.post('/api/check-uid', async (req, res) => {
   }
 });
 
+// //API Generate Access Token
+// app.post('/api/generate-custom-token', async (req, res) => {
+//   const { uid } = req.body;
 
-//API Generate Access Token
-app.post('/api/generate-custom-token', async (req, res) => {
-  const { uid } = req.body;
+//   if (!uid) {
+//     return res.send({ message: 'UID is required', status: false });
+//   }
 
-  if (!uid) {
-    return res.send({ message: 'UID is required', status: false });
-  }
-
-  try {
-    // Generate a custom token for the user
-    const customToken = await admin.auth().createCustomToken(uid);
-    res.send({ message: 'Custom token generated successfully', status: true, token: customToken });
-  } catch (error) {
-    res.send({ message: 'Error generating custom token', status: false, error: error.message });
-  }
-});
+//   try {
+//     // Generate a custom token for the user
+//     const customToken = await admin.auth().createCustomToken(uid);
+//     res.send({ message: 'Custom token generated successfully', status: true, token: customToken });
+//   } catch (error) {
+//     res.send({ message: 'Error generating custom token', status: false, error: error.message });
+//   }
+// });
 
 
 
