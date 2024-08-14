@@ -28,7 +28,7 @@ let otpStorage_Register = {};
 const saltRounds = 14;
 
 //Hello World API
-app.post('/api/hello',VerifyTokens, function(req, res){
+app.post('/api/test-verify',VerifyTokens, function(req, res){
   res.send('Hello World!')
   });
 
@@ -49,9 +49,9 @@ app.post('/api/register', async (req, res) => {
     }else{
       const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
-      const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_Password)VALUES(?,?,?)";
+      const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_DisplayName,Users_Password)VALUES(?,?,?,?)";
 
-      db.query(sql, [Users_Email, Users_Username, NewPassword], (err) => {
+      db.query(sql, [Users_Email, Users_Username, Users_Username, NewPassword], (err) => {
         if (err) throw err;
 
         res.send({ message: "User registered successfully",status: true });
@@ -190,13 +190,14 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 //API Add Admin 
-app.post('/api/test', async (req, res) => {
-  const { Users_Password } = req.body;
+app.post('/api/admin-add', async (req, res) => {
+  const {  Users_Email, Users_Username, Users_Password } = req.body;
 
   const NewPassword = await bcrypt.hash(Users_Password ,saltRounds);
 
-  const sql = "INSERT INTO Users(Users_Username,Users_Password,Users_FirstName,Users_LastName,Users_Email,UsersGender_ID,UsersType_ID)VALUES('Admin',?,'Admin_First','Admin_Last','duangdee.app@gmail.com','3','2');";
-        db.query(sql, [NewPassword], async(err) => {
+  const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_DisplayName,Users_Password)VALUES"+
+          "(?,?,?,?)";
+        db.query(sql, [Users_Email, Users_Username, Users_Username, NewPassword], async(err) => {
         if (err) throw err;
             res.send({ message: "User registered successfully",status: true });
         });
@@ -217,25 +218,6 @@ app.post('/api/check-uid', async (req, res) => {
     res.send({ message: 'Invalid UID or User not found', status: false });
   }
 });
-
-// //API Generate Access Token
-// app.post('/api/generate-custom-token', async (req, res) => {
-//   const { uid } = req.body;
-
-//   if (!uid) {
-//     return res.send({ message: 'UID is required', status: false });
-//   }
-
-//   try {
-//     // Generate a custom token for the user
-//     const customToken = await admin.auth().createCustomToken(uid);
-//     res.send({ message: 'Custom token generated successfully', status: true, token: customToken });
-//   } catch (error) {
-//     res.send({ message: 'Error generating custom token', status: false, error: error.message });
-//   }
-// });
-
-
 
 app.listen(process.env.SERVER_PORT, function() {
     console.log(`Example app listening on port ${process.env.SERVER_PORT}`)
