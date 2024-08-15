@@ -2,6 +2,7 @@ const express = require('express')
 const mysql = require('mysql2')
 const bcrypt = require('bcrypt')
 const loginRateLimiter = require('./Rate_Limiter/Limit_Time');
+const OTP_Timelimiter = require('./OTP_Email/OTP_Timelimiter');
 const generateOTP = require('./OTP_Email/OTP_Generator');
 const sendOTPEmail = require('./OTP_Email/SendEmail');
 const GenerateTokens = require('./Jwt_Tokens/Tokens_Generator');
@@ -29,7 +30,11 @@ const saltRounds = 14;
 
 //Hello World API
 app.post('/api/hello',VerifyTokens, function(req, res){
-  res.send('Hello World!')
+  res.send({
+    users_decoded:req.users_decoded,
+    message: 'Hello World!',
+    status: true
+  })
   });
 
 //API Register General
@@ -111,7 +116,10 @@ app.post('/api/send-otp', async (req, res) => {
   }
 
   const currentOTP = generateOTP();
-  otpStorage_Register[Users_Email] = currentOTP;
+  otpStorage_Register[Users_Email] = {
+    otp: currentOTP,
+    timestamp: Date.now()
+  };
 
   try {
     await sendOTPEmail(Users_Email, currentOTP);
@@ -124,12 +132,22 @@ app.post('/api/send-otp', async (req, res) => {
 //API Verify OTP
 app.post('/api/verify-otp', (req, res) => {
   const { Users_Email, OTP } = req.body;
+  const OTP_Check = OTP_Timelimiter(otpStorage_Register,Users_Email);
 
   if (!Users_Email || !OTP) {
     return res.send({ message: 'Email and OTP are required', status: false });
   }
 
-  if (otpStorage_Register[Users_Email] == OTP) {
+  if(!OTP_Check){
+    return res.send({ message:'No OTP found for this email',status: false });
+  }
+
+  if (OTP_Check == 2) {
+    delete otpStorage_Register[Users_Email];
+    return res.send({ message:'OTP Expired',status: false });
+  }
+
+  if (OTP_Check == OTP) {
     delete otpStorage_Register[Users_Email];
     res.send({ message:'OTP Verified Successfully',status: true });
   } else {
@@ -150,7 +168,10 @@ app.post('/api/request-password', async (req, res) => {
 
     if (result[0].count > 0) {
       const currentOTP = generateOTP();
-      otpStorage_Resets[Users_Email] = currentOTP;
+      otpStorage_Resets[Users_Email] = {
+        otp: currentOTP,
+        timestamp: Date.now()
+      };
 
       try {
         await sendOTPEmail(Users_Email, currentOTP);
@@ -167,12 +188,22 @@ app.post('/api/request-password', async (req, res) => {
 //API Reset Password
 app.post('/api/reset-password', async (req, res) => {
   const { Users_Email, Users_Password, OTP } = req.body;
+  const OTP_Check = OTP_Timelimiter(otpStorage_Resets,Users_Email);
 
-  if (!Users_Email || !OTP) {
-    return res.send({ message: 'Email and OTP are required', status: false });
+  if (!Users_Email || !Users_Password || !OTP) {
+    return res.send({ message: 'Email and Password and OTP are required', status: false });
   }
 
-  if (otpStorage_Resets[Users_Email] == OTP) {
+  if(!OTP_Check){
+    return res.send({ message:'No OTP found for this email',status: false });
+  }
+
+  if (OTP_Check == 2) {
+    delete otpStorage_Resets[Users_Email];
+    return res.send({ message:'OTP Expired',status: false });
+  }
+
+  if (OTP_Check == OTP) {
     delete otpStorage_Resets[Users_Email];
 
     const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
@@ -213,7 +244,13 @@ app.post('/api/check-uid', async (req, res) => {
 
   try {
     const userRecord = await admin.auth().getUser(uid);
-    res.send({ message: 'UID is valid', status: true, user: userRecord });
+    res.send({ 
+      uid: userRecord.uid,
+      email: userRecord.email,
+      displayName: userRecord.displayName,
+      message: 'UID is valid',
+      status: true
+    });
   } catch (error) {
     res.send({ message: 'Invalid UID or User not found', status: false });
   }
