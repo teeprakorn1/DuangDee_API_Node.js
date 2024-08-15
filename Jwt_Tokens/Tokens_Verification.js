@@ -10,7 +10,7 @@ const Tokens_Verification = (req, res, next) =>{
         const decode = jwt.verify(token ,process.env.PRIVATE_TOKEN_KEY);
         req.users_decoded = decode;
     }catch(err){
-        return res.send({message:'Invalid Token', status: false});
+        return res.send({message:'Invalid token', status: false});
     }
     return next();
 }
