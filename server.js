@@ -29,7 +29,10 @@ const saltRounds = 14;
 
 //Hello World API
 app.post('/api/hello',VerifyTokens, function(req, res){
-  res.send('Hello World!')
+  res.send({
+    message: 'Hello World!',
+    users_decoded: req.users_decoded
+});
   });
 
 //API Register General
@@ -85,7 +88,7 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
             if (err) throw err;
 
             const user = result[0];
-            const Tokens = GenerateTokens(user.Users_ID, user.Users_Username, 1);
+            const Tokens = GenerateTokens(user.Users_ID, user.Users_Username,user.Users_DisplayName, 1);
 
             user['Token'] = Tokens;
             user['message'] = "Password Is Success"
