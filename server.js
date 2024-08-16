@@ -24,7 +24,7 @@ const db = mysql.createConnection(
 db.connect();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
-const saltRounds = process.env.HASHING_ROUND;
+const saltRounds = 14;
 
 let otpStorage_Resets = {};
 let otpStorage_Register = {};

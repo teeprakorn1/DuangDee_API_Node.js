@@ -1,4 +1,4 @@
-// sendEmail.js
+//Send OTP
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 

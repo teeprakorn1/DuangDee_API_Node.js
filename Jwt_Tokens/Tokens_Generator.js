@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken')
 
+//Generator Token
 function Tokens_Generator(Users_ID, Some_Username, Users_DisplayName, value) {
     if(!Users_ID || !Some_Username || !value ){ return 0;}else{
         let Token;

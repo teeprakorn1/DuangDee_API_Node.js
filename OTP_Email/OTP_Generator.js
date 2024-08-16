@@ -1,4 +1,4 @@
-// OTP_Generator.js
+//Generator OTP
 function generateOTP(length = 6) {
   const charset = '0123456789';
   let otp = '';
