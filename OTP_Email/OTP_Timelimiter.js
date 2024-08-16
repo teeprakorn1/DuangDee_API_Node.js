@@ -7,7 +7,7 @@ function OTP_Timelimiter(OtpStorage, Users_Email) {
         const currentTime = Date.now();
 
         if (currentTime - timestamp > otpExpiryMinutes * 60 * 1000) {
-            return 2;
+            return -1;
         }
 
         return otp;

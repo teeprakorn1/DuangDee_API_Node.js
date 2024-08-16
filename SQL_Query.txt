@@ -29,7 +29,7 @@ CREATE TABLE Users(
     Users_FirstName VARCHAR(255),
     Users_LastName VARCHAR(255),
     Users_Email VARCHAR(255),
-    Users_Phone VARCHAR(10),
+    Users_Phone VARCHAR(15),
     Users_BirthDate DATE,
     Users_RegisDate DATETIME DEFAULT CURRENT_TIMESTAMP,
     Users_ImageFile VARCHAR(255),
