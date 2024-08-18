@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 //Generator Token
-function Tokens_Generator(Users_ID, Some_Username, Users_DisplayName, value) {
+function Tokens_Generator(Users_ID, Some_Username, Users_Email, value) {
     if(!Users_ID || !Some_Username || !value ){ return 0;}else{
         let Token;
         if(value === 1){
@@ -9,7 +9,7 @@ function Tokens_Generator(Users_ID, Some_Username, Users_DisplayName, value) {
             {
               Users_ID:Users_ID,
               Users_Username:Some_Username,
-              Users_DisplayName:Users_DisplayName,
+              Users_Email:Users_Email,
               RegisType_ID:1
             },
             process.env.PRIVATE_TOKEN_KEY,{ expiresIn: '24h'}
@@ -19,7 +19,7 @@ function Tokens_Generator(Users_ID, Some_Username, Users_DisplayName, value) {
             Token = jwt.sign(
             {Users_ID:Users_ID,
                Users_Google_Uid:Some_Username,
-               Users_DisplayName:Users_DisplayName,
+               Users_Email:Users_Email,
                RegisType_ID:2
             },
             process.env.PRIVATE_TOKEN_KEY,{ expiresIn: '24h'}

@@ -1,7 +1,8 @@
 const express = require('express')
 const mysql = require('mysql2')
 const bcrypt = require('bcrypt')
-const loginRateLimiter = require('./Rate_Limiter/Limit_Time');
+const loginRateLimiter = require('./Rate_Limiter/LimitTime_Login');
+const sendEmailRateLimiter = require('./Rate_Limiter/LimitTime_SendEmail');
 const OTP_Timelimiter = require('./OTP_Email/OTP_Timelimiter');
 const generateOTP = require('./OTP_Email/OTP_Generator');
 const sendOTPEmail = require('./OTP_Email/SendEmail');
@@ -30,13 +31,92 @@ let otpStorage_Resets = {};
 let otpStorage_Register = {};
 
 //Hello World API
-app.post('/api/hello',VerifyTokens, function(req, res){
-  res.send({
-    users_decoded:req.users_decoded,
-    message: 'Hello World!',
-    status: true
+app.post('/api/VerifyToken',VerifyTokens, function(req, res){
+  const regisType = req.users_decoded.RegisType_ID;
+
+  if(regisType == 1){
+    res.send({
+      Users_ID:req.users_decoded.Users_ID,
+      Users_Username:req.users_decoded.Users_Username,
+      Users_Email:req.users_decoded.Users_Email,
+      RegisType_ID:req.users_decoded.RegisType_ID,
+      status: true
+    });
+  }else if(regisType == 2){
+    res.send({
+      Users_ID:req.users_decoded.Users_ID,
+      Users_Google_Uid:req.users_decoded.Users_Google_Uid,
+      Users_Email:req.users_decoded.Users_Email,
+      RegisType_ID:req.users_decoded.RegisType_ID,
+      status: true
+    });
+  }else{
+    res.send({
+      status: false
+    });
+  }
+});
+
+//API Email Check 
+app.post('/api/check-email', async (req, res) => {
+  const { Users_Email } = req.body;
+
+  if(!Users_Email){
+    res.send({ message: 'Email is required', status: false });
+  }
+
+  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ?";
+  db.query(sql_check_email, [Users_Email], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      res.send({ message: "Email already exists",status: false });
+    }else{
+      res.send({ message: "Email is not registered",status: true });
+    }
   });
 });
+
+//API Username Check 
+app.post('/api/check-username', async (req, res) => {
+  const { Users_Username } = req.body;
+
+  if(!Users_Username){
+    res.send({ message: 'Username is required', status: false });
+  }
+
+  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ?";
+  db.query(sql_check_username, [Users_Username], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      res.send({ message: "Username already exists",status: false });
+    }else{
+      res.send({ message: "Username is not registered",status: true });
+    }
+  });
+});
+
+//API UID Check 
+app.post('/api/check-uid', async (req, res) => {
+  const { Users_Google_Uid } = req.body;
+
+  if(!Users_Google_Uid){
+    res.send({ message: 'UID is required', status: false });
+  }
+
+  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Google_Uid = ?";
+  db.query(sql_check_username, [Users_Google_Uid], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      res.send({ message: "UID already exists",status: false });
+    }else{
+      res.send({ message: "UID is not registered",status: true });
+    }
+  });
+});
+
 
 //API Register General
 app.post('/api/register', async (req, res) => {
@@ -75,25 +155,25 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
     return res.send({ message: 'Username and Password are required', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ? AND Users_IsActive = 1";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
   db.query(sql_check_username, [Users_Username,Users_Username], async (err, result) => {
   if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql_get_password = "SELECT Users_Password FROM Users WHERE Users_Username = ? OR Users_Email = ? AND Users_IsActive = 1";
+      const sql_get_password = "SELECT Users_Password FROM Users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
       db.query(sql_get_password, [Users_Username,Users_Username], async (err, result) => {
         if (err) throw err;
         
         const isCorrect = await bcrypt.compare(Users_Password, result[0].Users_Password);
         if (isCorrect) {
-          const sql = "SELECT * FROM Users WHERE Users_Username = ? OR Users_Email = ? AND Users_IsActive = 1";
+          const sql = "SELECT * FROM Users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
           db.query(sql, [Users_Username,Users_Username], async (err, result) => {
             if (err) throw err;
 
             const user = result[0];
-            const Tokens = GenerateTokens(user.Users_ID, user.Users_Username,user.Users_DisplayName, 1);
+            const Tokens = GenerateTokens(user.Users_ID, user.Users_Username,user.Users_Email, 1);
 
-            user['Token'] = Tokens;
+            user['token'] = Tokens;
             user['message'] = "Password Is Success"
             user['status'] = true
             res.send(user);
@@ -108,115 +188,150 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
   });
 });
 
-//API Send OTP
-app.post('/api/send-otp', async (req, res) => {
-  const { Users_Email } = req.body;
+//API Request Register
+app.post('/api/request-register',sendEmailRateLimiter, async (req, res) => {
+  const { Users_Email, Value } = req.body;
   
   if (!Users_Email) {
     return res.send({ message:'Email is required',status: false });
   }
 
   const currentOTP = generateOTP();
-  otpStorage_Register[Users_Email] = {
-    otp: currentOTP,
-    timestamp: Date.now()
-  };
-
-  try {
-    await sendOTPEmail(Users_Email, currentOTP);
-    res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
-  } catch (error) {
-    res.send({ message:'Failed to send OTP',status: false });
-  }
-});
-
-//API Verify OTP
-app.post('/api/verify-otp', (req, res) => {
-  const { Users_Email, OTP } = req.body;
-  const OTP_Check = OTP_Timelimiter(otpStorage_Register,Users_Email);
-
-  if (!Users_Email || !OTP) {
-    return res.send({ message: 'Email and OTP are required', status: false });
-  }
-
-  if(!OTP_Check){
-    return res.send({ message:'No OTP found for this email',status: false });
-  }
-
-  if (OTP_Check == -1) {
+  
+  if(Value == 0){
+    otpStorage_Register[Users_Email] = {
+      otp: currentOTP,
+      timestamp: Date.now()
+    };
+    try {
+      await sendOTPEmail(Users_Email, currentOTP, 1);
+      res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
+    } catch (error) {
+      res.send({ message:'Failed to send OTP',status: false });
+    }
+  }else if(Value == 1){
     delete otpStorage_Register[Users_Email];
-    return res.send({ message:'OTP Expired',status: false });
-  }
-
-  if (OTP_Check == OTP) {
-    delete otpStorage_Register[Users_Email];
-    res.send({ message:'OTP Verified Successfully',status: true });
-  } else {
-    res.send({ message:'Invalid OTP',status: false });
+    otpStorage_Register[Users_Email] = {
+      otp: currentOTP,
+      timestamp: Date.now()
+    };
+    try {
+      await sendOTPEmail(Users_Email, currentOTP, 1);
+      res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
+    } catch (error) {
+      res.send({ message:'Failed to send OTP',status: false });
+    }
+  }else{
+    res.send({ message:'Invalid Value',status: false });
   }
 });
 
 //API Request Password
-app.post('/api/request-password', async (req, res) => {
-  const { Users_Email}  = req.body;
+app.post('/api/request-password', sendEmailRateLimiter, async (req, res) => {
+  const { Users_Email, Value } = req.body;
+  
   if (!Users_Email) {
-    return res.send({ message: 'Email is required', status: false });
+    return res.send({ message:'Email is required',status: false });
   }
 
-  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ?";
+  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ? AND RegisType_ID NOT IN (2)";
   db.query(sql_check_email, [Users_Email], async (err, result) => {
-  if (err) throw err;
+    if (err) throw err;
 
     if (result[0].count > 0) {
       const currentOTP = generateOTP();
-      otpStorage_Resets[Users_Email] = {
-        otp: currentOTP,
-        timestamp: Date.now()
-      };
-
-      try {
-        await sendOTPEmail(Users_Email, currentOTP);
-        res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
-      } catch (error) {
-        res.send({ message:'Failed to send OTP',status: false });
+  
+      if(Value == 0){
+        otpStorage_Resets[Users_Email] = {
+          otp: currentOTP,
+          timestamp: Date.now()
+        };
+        try {
+          await sendOTPEmail(Users_Email, currentOTP, 2);
+          res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
+        } catch (error) {
+          res.send({ message:'Failed to send OTP',status: false });
+        }
+      }else if(Value == 1){
+        delete otpStorage_Resets[Users_Email];
+        otpStorage_Resets[Users_Email] = {
+          otp: currentOTP,
+          timestamp: Date.now()
+        };
+        try {
+          await sendOTPEmail(Users_Email, currentOTP, 2);
+          res.send({ message:'OTP sent successfully to ' + Users_Email,status: true });
+        } catch (error) {
+          res.send({ message:'Failed to send OTP',status: false });
+        }
+      }else{
+        res.send({ message:'Invalid Value',status: false });
       }
     }else{
-      res.send({ message: "It Email not Register",status: false });
+      res.send({ message:'Email is not registered or invalid',status: false });
     }
   });
 });
 
+//API Verify OTP
+app.post('/api/verify-otp', (req, res) => {
+  const { Users_Email, OTP , Value} = req.body;
+  let OTP_Check = 0;
+
+  if (!Users_Email || !OTP || !Value){
+    return res.send({ message: 'Email and OTP and Value are required', status: false });
+  }
+
+  if(Value == 0){
+    OTP_Check = OTP_Timelimiter(otpStorage_Register,Users_Email);
+    if(!OTP_Check){
+      return res.send({ message:'No OTP found for this email',status: false });
+    }
+    if (OTP_Check == -1) {
+      delete otpStorage_Register[Users_Email];
+      return res.send({ message:'OTP Expired',status: false });
+    }
+    if (OTP_Check == OTP) {
+      delete otpStorage_Register[Users_Email];
+      res.send({ message:'OTP Verified Successfully',status: true });
+    } else {
+      res.send({ message:'Invalid OTP',status: false });
+    }
+
+  }else if(Value == 1){
+    OTP_Check = OTP_Timelimiter(otpStorage_Resets,Users_Email);
+    if(!OTP_Check){
+      return res.send({ message:'No OTP found for this email',status: false });
+    }
+    if (OTP_Check == -1) {
+      delete otpStorage_Resets[Users_Email];
+      return res.send({ message:'OTP Expired',status: false });
+    }
+    if (OTP_Check == OTP) {
+      delete otpStorage_Resets[Users_Email];
+      res.send({ message:'OTP Verified Successfully',status: true });
+    } else {
+      res.send({ message:'Invalid OTP',status: false });
+    }
+  }
+});
+
 //API Reset Password
 app.post('/api/reset-password', async (req, res) => {
-  const { Users_Email, Users_Password, OTP } = req.body;
-  const OTP_Check = OTP_Timelimiter(otpStorage_Resets,Users_Email);
+  const { Users_Email, Users_Password } = req.body;
 
-  if (!Users_Email || !Users_Password || !OTP) {
-    return res.send({ message: 'Email and Password and OTP are required', status: false });
+  if (!Users_Email || !Users_Password) {
+    return res.send({ message: 'Email and Password are required', status: false });
   }
 
-  if(!OTP_Check){
-    return res.send({ message:'No OTP found for this email',status: false });
-  }
+  const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
-  if (OTP_Check == -1) {
-    delete otpStorage_Resets[Users_Email];
-    return res.send({ message:'OTP Expired',status: false });
-  }
-
-  if (OTP_Check == OTP) {
-    delete otpStorage_Resets[Users_Email];
-
-    const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
-
-    const sql = "UPDATE Users SET Users_Password = ? WHERE Users_Email = ?";
-    db.query(sql, [NewPassword,Users_Email], async (err) => {
-      if (err) throw err;
+  const sql = "UPDATE Users SET Users_Password = ? WHERE Users_Email = ?";
+  db.query(sql, [NewPassword,Users_Email], async (err) => {
+    if (err) throw err;
+      await sendOTPEmail(Users_Email, null , 0);
       res.send({ message:'Password Reset Successfully',status: true });
-    });
-  }else{
-    res.send({ message:'Invalid OTP',status: false });
-  }
+  });
 });
 
 //API Add Admin 
@@ -250,14 +365,15 @@ app.post('/api/check-uid', async (req, res) => {
       uid: Uid_Storage.uid,
       email: Uid_Storage.email,
       displayName: Uid_Storage.displayName,
-      message: 'UID is valid', status: true 
+      message: 'UID is valid', 
+      status: true 
     });
   }
 });
 
 //API Register UID
 app.post('/api/register-uid', async (req, res) => {
-  const { Users_Google_Uid, Users_DisplayName } = req.body;
+  const { Users_Google_Uid, Users_Email, Users_DisplayName } = req.body;
 
   if (!Users_Google_Uid || !Users_DisplayName) {
     return res.send({ message: 'UID and DisplayName is required', status: false });
@@ -270,11 +386,20 @@ app.post('/api/register-uid', async (req, res) => {
     if (result[0].count > 0) {
       res.send({ message: "UID already exists",status: false });
     }else{
-      const sql = "INSERT INTO Users (Users_Google_Uid,Users_DisplayName,RegisType_ID)VALUES(?,?,2)";
-      db.query(sql, [Users_Google_Uid, Users_DisplayName], (err) => {
+      const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ?";
+      db.query(sql_check_email, [Users_Email], async (err, result) => {
         if (err) throw err;
-
-        res.send({ message: "User registered successfully",status: true });
+  
+        if (result[0].count > 0) {
+          res.send({ message: "Email already exists",status: false });
+        }else{
+          const sql = "INSERT INTO Users (Users_Email,Users_Google_Uid,Users_DisplayName,RegisType_ID)VALUES(?,?,?,2)";
+          db.query(sql, [Users_Email, Users_Google_Uid, Users_DisplayName], (err) => {
+            if (err) throw err;
+    
+            res.send({ message: "User registered successfully",status: true });
+          });
+        }
       });
     }
   });
@@ -288,7 +413,7 @@ app.post('/api/login-uid',async (req, res) => {
     res.send({ message: 'UID is required', status: false });
   }
 
-  const sql = "SELECT COUNT(*) AS count FROM Users WHERE Users_Google_Uid = ? AND Users_IsActive = 1";
+  const sql = "SELECT COUNT(*) AS count FROM Users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
   db.query(sql, [Users_Google_Uid], async (err, result) => {
     if (err) throw err
     
@@ -300,7 +425,7 @@ app.post('/api/login-uid',async (req, res) => {
       }
 
       if (Uid_Storage) {
-        const sql_select_users = "SELECT Users_ID FROM Users WHERE Users_Google_Uid = ? AND Users_IsActive = 1";
+        const sql_select_users = "SELECT Users_ID FROM Users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
         db.query(sql_select_users, [Users_Google_Uid], async (err, result) => {
           if (err) throw err;
 
@@ -308,10 +433,10 @@ app.post('/api/login-uid',async (req, res) => {
             return res.send({ message: 'User not found', status: false });
           }else{
             const user = result[0];
-            const Tokens = GenerateTokens(user.Users_ID, Uid_Storage.uid,Uid_Storage.displayName, 2);
+            const Tokens = GenerateTokens(user.Users_ID, Uid_Storage.uid,Uid_Storage.email, 2);
 
             res.send({
-              Tokens: Tokens,
+              token: Tokens,
               message: "Login Success",
               status: true
             });
