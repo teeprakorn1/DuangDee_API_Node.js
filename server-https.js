@@ -9,11 +9,17 @@ const sendOTPEmail = require('./OTP_Email/SendEmail');
 const GenerateTokens = require('./Jwt_Tokens/Tokens_Generator');
 const VerifyTokens = require('./Jwt_Tokens/Tokens_Verification');
 const GoogleIdentity = require('./OAuth_Firebase/Google_Verify_Identity');
+const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const sharp = require('sharp');
 const https = require('https');
+const path = require('path');
 const fs = require('fs');
 const app = express()
 
 require('dotenv').config();
+
+const cors = require('cors')
 
 const privateKey = fs.readFileSync('privatekey.pem', 'utf8');
 const certificate = fs.readFileSync('certificate.pem', 'utf8');
@@ -28,11 +34,21 @@ const db = mysql.createConnection(
   }
 );
 
+const uploadDir = path.join(__dirname, 'profile-images');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 db.connect();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
-const saltRounds = 14;
+app.use('/profile-images', express.static(uploadDir));
+app.use(cors())
 
+const saltRounds = 14;
 let otpStorage_Resets = {};
 let otpStorage_Register = {};
 
@@ -449,6 +465,96 @@ app.post('/api/login-uid',async (req, res) => {
           }
         });
       }
+    }else{
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
+    }
+  });
+});
+
+//API Update Profile Image
+app.put('/api/update-profile-image/:id', upload.single('Profile_Image') ,async (req, res) => {
+  const { id } = req.params;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if (!req.file) {
+    return res.send({ message: "ต้องมีภาพประกอบ", status: false });
+  }
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM Users WHERE Users_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      const uniqueName = uuidv4();
+      const ext = path.extname(req.file.originalname);
+      const resizedImagePath = path.join(uploadDir, `${uniqueName}${ext}`);
+
+      try {
+        await sharp(req.file.buffer)
+          .resize(1280, 1280) //1280x1280 pixels
+          .toFile(resizedImagePath);
+        const Profile_ImageURL = `/profile-images/${uniqueName}${ext}`;
+        const sql = "UPDATE Users SET Users_ImageFile = ? WHERE Users_ID = ?";
+        db.query(sql, [Profile_ImageURL, id], (err) => {
+          if (err) throw err;
+          res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
+        });
+      }catch (error) {
+        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+      }
+    }else{
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
+    }
+  });
+});
+
+//API Update Profile
+app.put('/api/update-profile/:id',async (req, res) => {
+  const { id } = req.params;
+  const { Users_Username, Users_DisplayName, Users_FirstName, Users_LastName,
+    Users_Phone, Users_BirthDate, UsersGender_ID, } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if(!Users_Username || !Users_DisplayName || !Users_FirstName || 
+    !Users_LastName || !Users_Phone || !Users_BirthDate || !UsersGender_ID){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM Users WHERE Users_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+
+
+    }else{
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
+    }
+  });
+
+
+
+
+
+});
+
+//API Get Profile By ID
+app.get('/api/get-profile/:id',async (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT * FROM Users WHERE Users_ID = ?";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const UsersData = results[0];
+      UsersData['message'] = "ทำรายการสำเร็จ"
+      UsersData['status'] = true
+      res.send(UsersData);
     }else{
       res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
