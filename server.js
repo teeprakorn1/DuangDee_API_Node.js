@@ -527,6 +527,53 @@ app.put('/api/update-profile-image/:id', upload.single('Profile_Image') ,async (
   });
 });
 
+//API Delete Profile Image
+app.delete('/api/delete-profile-image/:id', async (req, res) => {
+  const { id } = req.params;
+  const { imagePath } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if (!imagePath) {
+      return res.send({ message: "ต้องมี imagePath", status: false });
+  }
+
+  const sql = "SELECT Users_ImageFile FROM Users WHERE Users_ID = ?";
+  db.query(sql, [id], async (err, result) => {
+    if (err) throw err;
+    if(result.length > 0){
+      const Users_ImageFile = result[0].Users_ImageFile;
+
+      if(Users_ImageFile == null){
+        return res.send({ message: "ไม่พบรูปภาพ", status: false });
+      }
+
+      if(Users_ImageFile == imagePath){
+        return res.send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
+      }
+
+      const sanitizedPath = imagePath.replace(/^\/+/, '');
+      const fullPath = path.join(__dirname, sanitizedPath);
+  
+    fs.access(fullPath, fs.constants.F_OK, (err) => {
+      if (err) {
+        return res.send({ message: "ไม่พบไฟล์", status: false });
+      }
+      fs.unlink(fullPath, (err) => {
+        if (err) {
+            return res.send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
+        }
+        res.send({ message: "ลบรูปภาพสำเร็จ", status: true });
+      });
+    });
+    }else{
+      return res.send({ message: "ไม่พบผู้ใช้", status: false });
+    }
+  });
+});
+
 //API Update Profile
 app.put('/api/update-profile/:id',async (req, res) => {
   const { id } = req.params;
@@ -571,7 +618,7 @@ app.get('/api/get-profile/:id',async (req, res) => {
   const { id } = req.params;
   if(!id){ res.send({ message: "ต้องมี ID", status: false });}
 
-  const sql = "SELECT * FROM Users WHERE Users_ID = ?";
+  const sql = "SELECT u.*,g.UsersGender_Name FROM Users u INNER JOIN UsersGender g ON u.UsersGender_ID = G.UsersGender_ID WHERE Users_ID = '1'";
   db.query(sql, [id], (err, results) => {
     if (err) throw err;
     if(results.length > 0){
