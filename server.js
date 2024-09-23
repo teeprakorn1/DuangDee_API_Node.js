@@ -618,7 +618,7 @@ app.get('/api/get-profile/:id',async (req, res) => {
   const { id } = req.params;
   if(!id){ res.send({ message: "ต้องมี ID", status: false });}
 
-  const sql = "SELECT u.*,g.UsersGender_Name FROM Users u INNER JOIN UsersGender g ON u.UsersGender_ID = G.UsersGender_ID WHERE Users_ID = '1'";
+  const sql = "SELECT u.*,g.UsersGender_Name FROM Users u INNER JOIN UsersGender g ON u.UsersGender_ID = G.UsersGender_ID WHERE Users_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) throw err;
     if(results.length > 0){
