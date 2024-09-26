@@ -687,6 +687,21 @@ app.put('/api/update-zodiac/:id',async (req, res) => {
   });
 });
 
+//API Get Zodiac
+app.get('/api/get-zodiac',async (req, res) => {
+  const sql = "SELECT * FROM Zodiac";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const ZodiacData = results
+      res.send(ZodiacData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  
+  });
+});
+
 //API Get Zodiac By ID
 app.get('/api/get-zodiac/:id',async (req, res) => {
   const { id } = req.params;
@@ -704,6 +719,7 @@ app.get('/api/get-zodiac/:id',async (req, res) => {
     }
   });
 });
+
 
 //API Update Zodiac Image
 app.put('/api/update-Zodiac-image/:id', upload.single('Zodiac_Image') ,async (req, res) => {
@@ -743,6 +759,45 @@ app.put('/api/update-Zodiac-image/:id', upload.single('Zodiac_Image') ,async (re
   });
 });
 
+//API Check Zodiac of BirthDate
+app.post('/api/check-zodiac', async (req, res) => {
+  const { Users_BirthDate } = req.body;
+
+  if (!Users_BirthDate) {
+    return res.send({ message: "ต้องมีข้อมูลของวันเกิด", status: false });
+  }
+
+  // Set Form dd-mm-yyyy
+  const [day, month, year] = Users_BirthDate.split('-').map(Number);
+  const birthDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  birthDate.setHours(birthDate.getHours() + 8);
+
+  if (isNaN(birthDate)) {
+    return res.send({ message: "รูปแบบวันเกิดไม่ถูกต้อง", status: false });
+  }
+
+  const birthDay = birthDate.getUTCDate();
+  const birthMonth = birthDate.getUTCMonth() + 1;
+
+  let zodiacData;
+  let zodiacNumber;
+
+  //Astrological Signs
+  if ((birthMonth === 3 && birthDay >= 21) || (birthMonth === 4 && birthDay <= 19)) { zodiacData = 'ราศีเมษ'; zodiacNumber = 1;
+  } else if ((birthMonth === 4 && birthDay >= 20) || (birthMonth === 5 && birthDay <= 20)) { zodiacData = 'ราศีพฤษภ'; zodiacNumber = 2;
+  } else if ((birthMonth === 5 && birthDay >= 21) || (birthMonth === 6 && birthDay <= 20)) { zodiacData = 'ราศีเมถุน'; zodiacNumber = 3;
+  } else if ((birthMonth === 6 && birthDay >= 21) || (birthMonth === 7 && birthDay <= 22)) { zodiacData = 'ราศีกรกฎ'; zodiacNumber = 4;
+  } else if ((birthMonth === 7 && birthDay >= 23) || (birthMonth === 8 && birthDay <= 22)) { zodiacData = 'ราศีสิงห์';zodiacNumber = 5;
+  } else if ((birthMonth === 8 && birthDay >= 23) || (birthMonth === 9 && birthDay <= 22)) { zodiacData = 'ราศีกันย์'; zodiacNumber = 6;
+  } else if ((birthMonth === 9 && birthDay >= 23) || (birthMonth === 10 && birthDay <= 22)) { zodiacData = 'ราศีตุลย์'; zodiacNumber = 7;
+  } else if ((birthMonth === 10 && birthDay >= 23) || (birthMonth === 11 && birthDay <= 21)) { zodiacData = 'ราศีพิจิก'; zodiacNumber = 8;
+  } else if ((birthMonth === 11 && birthDay >= 22) || (birthMonth === 12 && birthDay <= 21)) { zodiacData = 'ราศีธนู'; zodiacNumber = 9;
+  } else if ((birthMonth === 12 && birthDay >= 22) || (birthMonth === 1 && birthDay <= 19)) {zodiacData = 'ราศีมังกร'; zodiacNumber = 10;
+  } else if ((birthMonth === 1 && birthDay >= 20) || (birthMonth === 2 && birthDay <= 18)) {zodiacData = 'ราศีกุมภ์'; zodiacNumber = 11;
+  } else if ((birthMonth === 2 && birthDay >= 19) || (birthMonth === 3 && birthDay <= 20)) {zodiacData = 'ราศีมีน'; zodiacNumber = 12; }
+
+  res.send({ Zodiac_ID: zodiacNumber, message: "ราศีของคุณคือ" + zodiacData, status: true });
+});
 
 
 app.listen(process.env.SERVER_PORT, function() {
