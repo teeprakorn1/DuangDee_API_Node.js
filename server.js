@@ -37,6 +37,7 @@ const db = mysql.createConnection(
 const uploadDir = path.join(__dirname, 'images');
 const uploadDir_Profile = path.join(__dirname, 'images/profile-images');
 const uploadDir_Zodiac = path.join(__dirname, 'images/zodiac-images');
+const uploadDir_Card = path.join(__dirname, 'images/card-images');
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
@@ -50,6 +51,10 @@ if (!fs.existsSync(uploadDir_Zodiac)) {
   fs.mkdirSync(uploadDir_Zodiac);
 }
 
+if (!fs.existsSync(uploadDir_Card)) {
+  fs.mkdirSync(uploadDir_Card);
+}
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -58,6 +63,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use('/images/profile-images', express.static(uploadDir_Profile));
 app.use('/images/zodiac-images', express.static(uploadDir_Zodiac));
+app.use('/images/card-images', express.static(uploadDir_Card));
 app.use(cors())
 
 const saltRounds = 14;
@@ -720,7 +726,6 @@ app.get('/api/get-zodiac/:id',async (req, res) => {
   });
 });
 
-
 //API Update Zodiac Image
 app.put('/api/update-Zodiac-image/:id', upload.single('Zodiac_Image') ,async (req, res) => {
   const { id } = req.params;
@@ -755,6 +760,53 @@ app.put('/api/update-Zodiac-image/:id', upload.single('Zodiac_Image') ,async (re
       }
     }else{
       res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Delete Zodiac Image
+app.delete('/api/delete-zodiac-image/:id', async (req, res) => {
+  const { id } = req.params;
+  const { imagePath } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if (!imagePath) {
+      return res.send({ message: "ต้องมี imagePath", status: false });
+  }
+
+  const sql = "SELECT Zodiac_ImageFile FROM Zodiac WHERE Zodiac_ID = ?";
+  db.query(sql, [id], async (err, result) => {
+    if (err) throw err;
+    if(result.length > 0){
+      const Zodiac_ImageFile = result[0].Zodiac_ImageFile;
+
+      if(Zodiac_ImageFile == null){
+        return res.send({ message: "ไม่พบรูปภาพ", status: false });
+      }
+
+      if(Zodiac_ImageFile == imagePath){
+        return res.send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
+      }
+
+      const sanitizedPath = imagePath.replace(/^\/+/, '');
+      const fullPath = path.join(__dirname, sanitizedPath);
+  
+    fs.access(fullPath, fs.constants.F_OK, (err) => {
+      if (err) {
+        return res.send({ message: "ไม่พบไฟล์", status: false });
+      }
+      fs.unlink(fullPath, (err) => {
+        if (err) {
+            return res.send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
+        }
+        res.send({ message: "ลบรูปภาพสำเร็จ", status: true });
+      });
+    });
+    }else{
+      return res.send({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
@@ -797,6 +849,146 @@ app.post('/api/check-zodiac', async (req, res) => {
   } else if ((birthMonth === 3 && birthDay >= 15) || (birthMonth === 4 && birthDay <= 12)) {zodiacData = 'ราศีมีน'; zodiacNumber = 12; }
 
   res.send({ Zodiac_ID: zodiacNumber, message: "ราศีของคุณคือ" + zodiacData, status: true });
+});
+
+//Insert Card Data API
+app.post('/api/card-data', async (req, res) => {
+  const {Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic } = req.body;
+
+  if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic ){
+    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql = "INSERT INTO Card (Card_Name, Card_WorkTopic, Card_FinanceTopic" + 
+  ", Card_LoveTopic)VALUES(?,?,?,?)";
+  db.query(sql,[Card_Name,Card_WorkTopic,Card_FinanceTopic,Card_LoveTopic], (err,result) => {
+    if (err) throw err;
+    if(result.affectedRows > 0){
+      res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
+    }else{
+      res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
+    }
+  });
+});
+
+//Update Card API
+app.put('/api/update-card/:id',async (req, res) => {
+  const { id } = req.params;
+  const {Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic, Card_Score } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic || !Card_Score ){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM Card WHERE Card_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      const sql = "UPDATE Card SET Card_Name = ?, Card_WorkTopic = ?, Card_FinanceTopic = ?" +
+        ",Card_LoveTopic = ?, Card_Score = ? WHERE Card_ID = ?"
+      db.query(sql,[Card_Name, Card_WorkTopic, Card_FinanceTopic, 
+        Card_LoveTopic, Card_Score], (err,result)=> {
+        if (err) throw err;
+        if(result.affectedRows > 0){
+          res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
+        }else{
+          res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
+        }
+      });
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Update Card Image
+app.put('/api/update-card-image/:id', upload.single('Card_Image') ,async (req, res) => {
+  const { id } = req.params;
+  if(!id){ return res.send({ message: "ต้องมี ID", status: false });}
+  if (!req.file) { return res.send({ message: "ต้องมีภาพประกอบ", status: false });}
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM Card WHERE Card_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      const uniqueName = uuidv4();
+      const ext = path.extname(req.file.originalname);
+      const resizedImagePath = path.join(uploadDir_Card, `${uniqueName}${ext}`);
+
+      try {
+        await sharp(req.file.buffer)
+          .resize(1280, 1280) //1280x1280 pixels
+          .toFile(resizedImagePath);
+        const Card_ImageURL = `/images/card-images/${uniqueName}${ext}`;
+        const sql = "UPDATE Card SET Card_ImageFile = ? WHERE Card_ID = ?";
+        db.query(sql, [Card_ImageURL, id], (err, result) => {
+          if (err) throw err;
+          if(result.affectedRows > 0){
+            res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
+          }else{
+            res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+          }
+        });
+      }catch (error) {
+        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+      }
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Delete Card Image
+app.delete('/api/delete-card-image/:id', async (req, res) => {
+  const { id } = req.params;
+  const { imagePath } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if (!imagePath) {
+      return res.send({ message: "ต้องมี imagePath", status: false });
+  }
+
+  const sql = "SELECT Card_ImageFile FROM Card WHERE Card_ID = ?";
+  db.query(sql, [id], async (err, result) => {
+    if (err) throw err;
+    if(result.length > 0){
+      const Card_ImageFile = result[0].Card_ImageFile;
+
+      if(Card_ImageFile == null){
+        return res.send({ message: "ไม่พบรูปภาพ", status: false });
+      }
+
+      if(Card_ImageFile == imagePath){
+        return res.send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
+      }
+
+      const sanitizedPath = imagePath.replace(/^\/+/, '');
+      const fullPath = path.join(__dirname, sanitizedPath);
+  
+    fs.access(fullPath, fs.constants.F_OK, (err) => {
+      if (err) {
+        return res.send({ message: "ไม่พบไฟล์", status: false });
+      }
+      fs.unlink(fullPath, (err) => {
+        if (err) {
+            return res.send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
+        }
+        res.send({ message: "ลบรูปภาพสำเร็จ", status: true });
+      });
+    });
+    }else{
+      return res.send({ message: "ไม่พบข้อมูล", status: false });
+    }
+  });
 });
 
 

@@ -6,6 +6,8 @@ SELECT * FROM UsersType;
 SELECT * FROM UsersGender;
 SELECT * FROM Users;
 SELECT * FROM Zodiac;
+SELECT * FROM Card;
+SELECT * FROM PlayCard;
 
 CREATE TABLE RegisType(
 	RegisType_ID TINYINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -53,6 +55,25 @@ CREATE TABLE Zodiac(
     Zodiac_FinanceTopic VARCHAR(511),
     Zodiac_LoveTopic VARCHAR(511),
     Zodiac_Score TINYINT
+);
+
+CREATE TABLE Card(
+	Card_ID TINYINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Card_Name VARCHAR(127) NOT NULL,
+    Card_ImageFile VARCHAR(255),
+    Card_WorkTopic VARCHAR(511),
+    Card_FinanceTopic VARCHAR(511),
+    Card_LoveTopic VARCHAR(511),
+    Card_Score TINYINT
+);
+
+CREATE TABLE PlayCard(
+	PlayCard_ID TINYINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    PlayCard_RegisDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Users_ID INT,
+    Card_ID TINYINT,
+    FOREIGN KEY (Users_ID) REFERENCES Users(Users_ID),
+    FOREIGN KEY (Card_ID) REFERENCES Card(Card_ID)
 );
 
 INSERT INTO RegisType (RegisType_Name)
