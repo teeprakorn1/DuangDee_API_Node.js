@@ -923,7 +923,7 @@ app.put('/api/update-card-image/:id', upload.single('Card_Image') ,async (req, r
 
       try {
         await sharp(req.file.buffer)
-          .resize(1280, 1280) //1280x1280 pixels
+          .resize(285, 500) //285x500 pixels
           .toFile(resizedImagePath);
         const Card_ImageURL = `/images/card-images/${uniqueName}${ext}`;
         const sql = "UPDATE Card SET Card_ImageFile = ? WHERE Card_ID = ?";
@@ -987,6 +987,70 @@ app.delete('/api/delete-card-image/:id', async (req, res) => {
     });
     }else{
       return res.send({ message: "ไม่พบข้อมูล", status: false });
+    }
+  });
+});
+
+//API Get count of Card
+app.get('/api/get-count-card',async (req, res) => {
+  const sql = "SELECT COUNT(*) AS Count FROM Card";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+  });
+});
+
+//API Get Card By ID
+app.get('/api/get-card/:id',async (req, res) => {
+  const { id } = req.params;
+  if(!id){ res.send({ message: "ต้องมี ID", status: false });}
+  const sql = "SELECT * FROM Card WHERE Card_ID = ?";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Get Card
+app.get('/api/get-card',async (req, res) => {
+  const sql = "SELECT * FROM Card";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  
+  });
+});
+
+//API Add PlayCard
+app.post('/api/add-playcard', async (req, res) => {
+  const {Users_ID, Card_ID } = req.body;
+
+  if(!Users_ID || !Card_ID ){
+    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql = "INSERT INTO PlayCard( Users_ID, Card_ID)VALUES(?,?)";
+  db.query(sql,[Users_ID,Card_ID], (err,result) => {
+    if (err) throw err;
+    if(result.affectedRows > 0){
+      res.send({ message: "จัดการข้อมูลสำเร็จ",status: true });
+    }else{
+      res.send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
     }
   });
 });
