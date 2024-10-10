@@ -659,6 +659,22 @@ app.put('/api/update-profile/:id',async (req, res) => {
     }
   });
 });
+//API Get All Profile
+app.get('/api/get-profile',async (req, res) => {
+  const sql = "SELECT u.*,g.UsersGender_Name,ut.UsersType_Name,rt.RegisType_Name FROM"+
+  "(((Users u INNER JOIN UsersGender g ON u.UsersGender_ID = G.UsersGender_ID)"+
+  "INNER JOIN UsersType ut ON u.UsersType_ID = ut.UsersType_ID)INNER JOIN"+
+  " RegisType rt ON u.RegisType_ID = rt.RegisType_ID)";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const profileData = results
+      res.send(profileData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  });
+});
 
 //API Get Profile By ID
 app.get('/api/get-profile/:id',async (req, res) => {
@@ -1096,10 +1112,48 @@ app.post('/api/add-playcard', async (req, res) => {
   });
 });
 
+//API Get count of Users
+app.get('/api/get-count-users',async (req, res) => {
+  const sql = "SELECT COUNT(*) AS Count FROM Users";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+  });
+});
+
+//API Get count of Users Online
+app.get('/api/get-count-users-online',async (req, res) => {
+  const sql = "SELECT COUNT(*) AS Count FROM Users WHERE Users_IsActive = 1";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+  });
+});
+
+//API Get count of Users Offline
+app.get('/api/get-count-users-offline',async (req, res) => {
+  const sql = "SELECT COUNT(*) AS Count FROM Users WHERE Users_IsActive = 0";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+  });
+});
+
 
 app.listen(process.env.SERVER_PORT, function() {
   console.log(`Example app listening on port ${process.env.SERVER_PORT}`)
 });
+
+
 
 // const httpsServer = https.createServer(credentials, app);
 // httpsServer.listen(process.env.SERVER_HTTPS_PORT, () => {
