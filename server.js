@@ -38,6 +38,7 @@ const uploadDir = path.join(__dirname, 'images');
 const uploadDir_Profile = path.join(__dirname, 'images/profile-images');
 const uploadDir_Zodiac = path.join(__dirname, 'images/zodiac-images');
 const uploadDir_Card = path.join(__dirname, 'images/card-images');
+const uploadDir_Hand = path.join(__dirname, 'palmprint-api-python/uploads');
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
@@ -55,6 +56,10 @@ if (!fs.existsSync(uploadDir_Card)) {
   fs.mkdirSync(uploadDir_Card);
 }
 
+if (!fs.existsSync(uploadDir_Hand)) {
+  fs.mkdirSync(uploadDir_Hand);
+}
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -64,12 +69,14 @@ app.use(express.urlencoded({extended: true}));
 app.use('/images/profile-images', express.static(uploadDir_Profile));
 app.use('/images/zodiac-images', express.static(uploadDir_Zodiac));
 app.use('/images/card-images', express.static(uploadDir_Card));
+app.use('/palmprint-api-python/uploads', express.static(uploadDir_Hand));
 app.use(cors())
 
 const saltRounds = 14;
 let otpStorage_Resets = {};
 let otpStorage_Register = {};
 
+//////////////////////////////////Tokens API///////////////////////////////////////
 //Verify Tokens API
 app.post('/api/VerifyToken',VerifyTokens, function(req, res){
   const regisType = req.users_decoded.RegisType_ID;
@@ -97,6 +104,7 @@ app.post('/api/VerifyToken',VerifyTokens, function(req, res){
   }
 });
 
+//////////////////////////////////Check API///////////////////////////////////////
 //API Email Check 
 app.post('/api/check-email', async (req, res) => {
   const { Users_Email } = req.body;
@@ -105,7 +113,7 @@ app.post('/api/check-email', async (req, res) => {
     res.send({ message: 'จำเป็นต้องมี Email', status: false });
   }
 
-  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ?";
+  const sql_check_email = "SELECT COUNT(*) AS count FROM users WHERE Users_Email = ?";
   db.query(sql_check_email, [Users_Email], async (err, result) => {
     if (err) throw err;
 
@@ -125,7 +133,7 @@ app.post('/api/check-username', async (req, res) => {
     res.send({ message: 'กรุณากรอกชื่อผู้ใช้', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ?";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE Users_Username = ?";
   db.query(sql_check_username, [Users_Username], async (err, result) => {
     if (err) throw err;
 
@@ -145,7 +153,7 @@ app.post('/api/check-uid', async (req, res) => {
     res.send({ message: 'กรุณากรอก UID', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Google_Uid = ?";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE Users_Google_Uid = ?";
   db.query(sql_check_username, [Users_Google_Uid], async (err, result) => {
     if (err) throw err;
 
@@ -157,7 +165,7 @@ app.post('/api/check-uid', async (req, res) => {
   });
 });
 
-
+//////////////////////////////////Register API///////////////////////////////////////
 //API Register General
 app.post('/api/register', async (req, res) => {
   const { Users_Email,Users_Username, Users_Password} = req.body;
@@ -166,7 +174,7 @@ app.post('/api/register', async (req, res) => {
     return res.send({ message: 'Fill in the parameter data correctly as specified.', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ?";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE Users_Username = ? OR Users_Email = ?";
   db.query(sql_check_username, [Users_Username,Users_Email], async (err, result) => {
     if (err) throw err;
 
@@ -175,7 +183,7 @@ app.post('/api/register', async (req, res) => {
     }else{
       const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
-      const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_DisplayName,Users_Password)VALUES(?,?,?,?)";
+      const sql = "INSERT INTO users (Users_Email,Users_Username,Users_DisplayName,Users_Password)VALUES(?,?,?,?)";
 
       db.query(sql, [Users_Email, Users_Username, Users_Username, NewPassword], (err) => {
         if (err) throw err;
@@ -187,6 +195,8 @@ app.post('/api/register', async (req, res) => {
   });
 });
 
+
+//////////////////////////////////Login API///////////////////////////////////////
 //API Login admin of Web Reach
 app.post('/api/login-admin',loginRateLimiter, async (req, res) => {
   const { Users_Username, Users_Password } = req.body;
@@ -195,18 +205,18 @@ app.post('/api/login-admin',loginRateLimiter, async (req, res) => {
     return res.send({ message: 'กรุณากรอก Username และ Password', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ? AND UsersType_ID = 2 AND Users_IsActive = 1";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE Users_Username = ? OR Users_Email = ? AND UsersType_ID = 2 AND Users_IsActive = 1";
   db.query(sql_check_username, [Users_Username,Users_Username], async (err, result) => {
   if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql_get_password = "SELECT Users_Password FROM Users WHERE Users_Username = ? OR Users_Email = ? AND UsersType_ID = 2 AND Users_IsActive = 1";
+      const sql_get_password = "SELECT Users_Password FROM users WHERE Users_Username = ? OR Users_Email = ? AND UsersType_ID = 2 AND Users_IsActive = 1";
       db.query(sql_get_password, [Users_Username,Users_Username], async (err, result) => {
         if (err) throw err;
         
         const isCorrect = await bcrypt.compare(Users_Password, result[0].Users_Password);
         if (isCorrect) {
-          const sql = "SELECT * FROM Users WHERE Users_Username = ? OR Users_Email = ? AND UsersType_ID = 2 AND Users_IsActive = 1";
+          const sql = "SELECT * FROM users WHERE Users_Username = ? OR Users_Email = ? AND UsersType_ID = 2 AND Users_IsActive = 1";
           db.query(sql, [Users_Username,Users_Username], async (err, result) => {
             if (err) throw err;
 
@@ -236,18 +246,18 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
     return res.send({ message: 'กรุณากรอก Username และ Password', status: false });
   }
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM Users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
   db.query(sql_check_username, [Users_Username,Users_Username], async (err, result) => {
   if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql_get_password = "SELECT Users_Password FROM Users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
+      const sql_get_password = "SELECT Users_Password FROM users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
       db.query(sql_get_password, [Users_Username,Users_Username], async (err, result) => {
         if (err) throw err;
         
         const isCorrect = await bcrypt.compare(Users_Password, result[0].Users_Password);
         if (isCorrect) {
-          const sql = "SELECT * FROM Users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
+          const sql = "SELECT * FROM users WHERE Users_Username = ? OR Users_Email = ? AND RegisType_ID = 1 AND Users_IsActive = 1";
           db.query(sql, [Users_Username,Users_Username], async (err, result) => {
             if (err) throw err;
 
@@ -269,6 +279,7 @@ app.post('/api/login',loginRateLimiter, async (req, res) => {
   });
 });
 
+//////////////////////////////////OTP API///////////////////////////////////////
 //API Request Register
 app.post('/api/request-register',sendEmailRateLimiter, async (req, res) => {
   const { Users_Email, Value } = req.body;
@@ -315,7 +326,7 @@ app.post('/api/request-password', sendEmailRateLimiter, async (req, res) => {
     return res.send({ message:'กรุณากรอก Email',status: false });
   }
 
-  const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ? AND RegisType_ID NOT IN (2)";
+  const sql_check_email = "SELECT COUNT(*) AS count FROM users WHERE Users_Email = ? AND RegisType_ID NOT IN (2)";
   db.query(sql_check_email, [Users_Email], async (err, result) => {
     if (err) throw err;
 
@@ -407,7 +418,7 @@ app.post('/api/reset-password', async (req, res) => {
 
   const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
-  const sql = "UPDATE Users SET Users_Password = ? WHERE Users_Email = ?";
+  const sql = "UPDATE users SET Users_Password = ? WHERE Users_Email = ?";
   db.query(sql, [NewPassword,Users_Email], async (err) => {
     if (err) throw err;
       await sendOTPEmail(Users_Email, null , 0);
@@ -415,18 +426,59 @@ app.post('/api/reset-password', async (req, res) => {
   });
 });
 
-//API Add Admin 
-app.post('/api/admin-add', async (req, res) => {
+//////////////////////////////////Admin API///////////////////////////////////////
+//API Add Admin (ยังไม่แก้ไข)
+app.post('/api/admin-add' , async (req, res) => {
   const {  Users_Email, Users_Username, Users_Password } = req.body;
 
   const NewPassword = await bcrypt.hash(Users_Password ,saltRounds);
-  const sql = "INSERT INTO Users (Users_Email,Users_Username,Users_DisplayName,Users_Password)VALUES(?,?,?,?)";
+  const sql = "INSERT INTO users (Users_Email,Users_Username,Users_DisplayName,Users_Password)VALUES(?,?,?,?)";
   db.query(sql, [Users_Email, Users_Username, Users_Username, NewPassword], async(err) => {
     if (err) throw err;
     res.send({ message: "ลงทะเบียน Admin สำเร็จเรียบร้อยแล้ว",status: true });
   });
 });
 
+//API Update Profile web admin
+app.put('/api/update-profile-web/:id',async (req, res) => {
+  const { id } = req.params;
+  const { Users_DisplayName, Users_FirstName, Users_LastName,
+    Users_Phone, Users_BirthDate, UsersGender_ID, Users_IsActive} = req.body;
+ 
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+ 
+  if(!Users_DisplayName || !Users_FirstName ||
+    !Users_LastName || !Users_Phone || !Users_BirthDate || !UsersGender_ID){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+ 
+  const sql_check_id = "SELECT COUNT(*) AS count FROM Users WHERE Users_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+ 
+    if (result[0].count > 0) {
+      const sql = "UPDATE Users SET Users_DisplayName = ?, Users_FirstName = ?, " +
+      " Users_LastName = ?, Users_Phone = ?, Users_BirthDate = ?, UsersGender_ID = ?, Users_IsActive = ?" +
+      " WHERE Users_ID = ?";
+      db.query(sql, [Users_DisplayName, Users_FirstName ,Users_LastName ,
+        Users_Phone ,Users_BirthDate ,UsersGender_ID , Users_IsActive ,id], async (err, result) => {
+        if (err) throw err;
+ 
+        if(result.affectedRows > 0){
+          res.send({ message: "อัพเดทข้อมูลสำเร็จ",status: true });
+        }else{
+          res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+        }
+      });
+    }else{
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
+    }
+  });
+});
+
+//////////////////////////////////Google OAuth API///////////////////////////////////////
 // API Check Firebase UID
 app.post('/api/check-uid', async (req, res) => {
   const { Users_Google_Uid } = req.body;
@@ -460,21 +512,21 @@ app.post('/api/register-uid', async (req, res) => {
     return res.send({ message: 'จำเป็นต้องมี UID และ DisplayName', status: false });
   }
 
-  const sql_check_uid = "SELECT COUNT(*) AS count FROM Users WHERE Users_Google_Uid = ?";
+  const sql_check_uid = "SELECT COUNT(*) AS count FROM users WHERE Users_Google_Uid = ?";
   db.query(sql_check_uid, [Users_Google_Uid], async (err, result) => {
     if (err) throw err;
 
     if (result[0].count > 0) {
       res.send({ message: "UID มีอยู่แล้ว",status: false });
     }else{
-      const sql_check_email = "SELECT COUNT(*) AS count FROM Users WHERE Users_Email = ?";
+      const sql_check_email = "SELECT COUNT(*) AS count FROM users WHERE Users_Email = ?";
       db.query(sql_check_email, [Users_Email], async (err, result) => {
         if (err) throw err;
   
         if (result[0].count > 0) {
           res.send({ message: "Email มีอยู่แล้ว",status: false });
         }else{
-          const sql = "INSERT INTO Users (Users_Email,Users_Google_Uid,Users_DisplayName,RegisType_ID)VALUES(?,?,?,2)";
+          const sql = "INSERT INTO users (Users_Email,Users_Google_Uid,Users_DisplayName,RegisType_ID)VALUES(?,?,?,2)";
           db.query(sql, [Users_Email, Users_Google_Uid, Users_DisplayName], (err) => {
             if (err) throw err;
     
@@ -494,7 +546,7 @@ app.post('/api/login-uid',async (req, res) => {
     res.send({ message: 'จำเป็นต้องมี UID', status: false });
   }
 
-  const sql = "SELECT COUNT(*) AS count FROM Users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
+  const sql = "SELECT COUNT(*) AS count FROM users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
   db.query(sql, [Users_Google_Uid], async (err, result) => {
     if (err) throw err
     
@@ -506,7 +558,7 @@ app.post('/api/login-uid',async (req, res) => {
       }
 
       if (Uid_Storage) {
-        const sql_select_users = "SELECT Users_ID FROM Users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
+        const sql_select_users = "SELECT Users_ID FROM users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
         db.query(sql_select_users, [Users_Google_Uid], async (err, result) => {
           if (err) throw err;
 
@@ -530,6 +582,7 @@ app.post('/api/login-uid',async (req, res) => {
   });
 });
 
+//////////////////////////////////Profile API///////////////////////////////////////
 //API Update Profile Image
 app.put('/api/update-profile-image/:id', upload.single('Profile_Image') ,async (req, res) => {
   const { id } = req.params;
@@ -542,7 +595,7 @@ app.put('/api/update-profile-image/:id', upload.single('Profile_Image') ,async (
     return res.send({ message: "ต้องมีภาพประกอบ", status: false });
   }
 
-  const sql_check_id = "SELECT COUNT(*) AS count FROM Users WHERE Users_ID = ?";
+  const sql_check_id = "SELECT COUNT(*) AS count FROM users WHERE Users_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) throw err;
 
@@ -556,7 +609,7 @@ app.put('/api/update-profile-image/:id', upload.single('Profile_Image') ,async (
           .resize(1280, 1280) //1280x1280 pixels
           .toFile(resizedImagePath);
         const Profile_ImageURL = `/images/profile-images/${uniqueName}${ext}`;
-        const sql = "UPDATE Users SET Users_ImageFile = ? WHERE Users_ID = ?";
+        const sql = "UPDATE users SET Users_ImageFile = ? WHERE Users_ID = ?";
         db.query(sql, [Profile_ImageURL, id], (err, result) => {
           if (err) throw err;
           if(result.affectedRows > 0){
@@ -587,7 +640,7 @@ app.delete('/api/delete-profile-image/:id', async (req, res) => {
       return res.send({ message: "ต้องมี imagePath", status: false });
   }
 
-  const sql = "SELECT Users_ImageFile FROM Users WHERE Users_ID = ?";
+  const sql = "SELECT Users_ImageFile FROM users WHERE Users_ID = ?";
   db.query(sql, [id], async (err, result) => {
     if (err) throw err;
     if(result.length > 0){
@@ -636,12 +689,12 @@ app.put('/api/update-profile/:id',async (req, res) => {
     return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
-  const sql_check_id = "SELECT COUNT(*) AS count FROM Users WHERE Users_ID = ?";
+  const sql_check_id = "SELECT COUNT(*) AS count FROM users WHERE Users_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql = "UPDATE Users SET Users_DisplayName = ?, Users_FirstName = ?, " +
+      const sql = "UPDATE users SET Users_DisplayName = ?, Users_FirstName = ?, " +
       " Users_LastName = ?, Users_Phone = ?, Users_BirthDate = ?, UsersGender_ID = ?" +
       " WHERE Users_ID = ? AND Users_IsActive = 1";
       db.query(sql, [Users_DisplayName, Users_FirstName ,Users_LastName ,
@@ -659,12 +712,13 @@ app.put('/api/update-profile/:id',async (req, res) => {
     }
   });
 });
+
 //API Get All Profile
 app.get('/api/get-profile',async (req, res) => {
   const sql = "SELECT u.*,g.UsersGender_Name,ut.UsersType_Name,rt.RegisType_Name FROM"+
-  "(((Users u INNER JOIN UsersGender g ON u.UsersGender_ID = G.UsersGender_ID)"+
-  "INNER JOIN UsersType ut ON u.UsersType_ID = ut.UsersType_ID)INNER JOIN"+
-  " RegisType rt ON u.RegisType_ID = rt.RegisType_ID)";
+  "(((users u INNER JOIN usersgender g ON u.UsersGender_ID = G.UsersGender_ID)"+
+  "INNER JOIN userstype ut ON u.UsersType_ID = ut.UsersType_ID)INNER JOIN"+
+  " registype rt ON u.RegisType_ID = rt.RegisType_ID)";
   db.query(sql, (err, results) => {
     if (err) throw err;
     if(results.length > 0){
@@ -682,9 +736,9 @@ app.get('/api/get-profile/:id',async (req, res) => {
   if(!id){ res.send({ message: "ต้องมี ID", status: false });}
 
   const sql = "SELECT u.*,g.UsersGender_Name,ut.UsersType_Name,rt.RegisType_Name FROM"+
-  "(((Users u INNER JOIN UsersGender g ON u.UsersGender_ID = G.UsersGender_ID)"+
-  "INNER JOIN UsersType ut ON u.UsersType_ID = ut.UsersType_ID)INNER JOIN"+
-  " RegisType rt ON u.RegisType_ID = rt.RegisType_ID) WHERE Users_ID = ?";
+  "(((users u INNER JOIN usersgender g ON u.UsersGender_ID = G.UsersGender_ID)"+
+  "INNER JOIN userstype ut ON u.UsersType_ID = ut.UsersType_ID)INNER JOIN"+
+  " registype rt ON u.RegisType_ID = rt.RegisType_ID) WHERE Users_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) throw err;
     if(results.length > 0){
@@ -698,26 +752,7 @@ app.get('/api/get-profile/:id',async (req, res) => {
   });
 });
 
-//Insert Zodiac First Data API
-app.post('/api/zodiac-first-data', async (req, res) => {
-  const {Zodiac_Name, Zodiac_Detail,Zodiac_WorkTopic, Zodiac_FinanceTopic, Zodiac_LoveTopic } = req.body;
-
-  if(!Zodiac_Name || !Zodiac_Detail || !Zodiac_WorkTopic || !Zodiac_FinanceTopic || !Zodiac_LoveTopic ){
-    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
-  }
-
-  const sql = "INSERT INTO Zodiac (Zodiac_Name,Zodiac_Detail,Zodiac_WorkTopic" + 
-  ",Zodiac_FinanceTopic ,Zodiac_LoveTopic)VALUES(?,?,?,?,?)";
-  db.query(sql,[Zodiac_Name,Zodiac_Detail,Zodiac_WorkTopic,Zodiac_FinanceTopic,Zodiac_LoveTopic], (err,result) => {
-    if (err) throw err;
-    if(result.affectedRows > 0){
-      res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
-    }else{
-      res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
-    }
-  });
-});
-
+//////////////////////////////////Zodiac API///////////////////////////////////////
 //Update Zodiac API
 app.put('/api/update-zodiac/:id',async (req, res) => {
   const { id } = req.params;
@@ -731,15 +766,15 @@ app.put('/api/update-zodiac/:id',async (req, res) => {
     return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
-  const sql_check_id = "SELECT COUNT(*) AS count FROM Zodiac WHERE Zodiac_ID = ?";
+  const sql_check_id = "SELECT COUNT(*) AS count FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql = "UPDATE Zodiac SET Zodiac_Name = ?, Zodiac_Detail = ?, Zodiac_WorkTopic = ?" +
+      const sql = "UPDATE zodiac SET Zodiac_Name = ?, Zodiac_Detail = ?, Zodiac_WorkTopic = ?" +
         ",Zodiac_FinanceTopic = ?, Zodiac_LoveTopic = ?, Zodiac_Score = ? WHERE Zodiac_ID = ?"
       db.query(sql,[Zodiac_Name, Zodiac_Detail, Zodiac_WorkTopic, 
-        Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score], (err,result)=> {
+        Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score, id], (err,result)=> {
         if (err) throw err;
         if(result.affectedRows > 0){
           res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
@@ -755,7 +790,7 @@ app.put('/api/update-zodiac/:id',async (req, res) => {
 
 //API Get Zodiac
 app.get('/api/get-zodiac',async (req, res) => {
-  const sql = "SELECT * FROM Zodiac";
+  const sql = "SELECT * FROM zodiac";
   db.query(sql, (err, results) => {
     if (err) throw err;
     if(results.length > 0){
@@ -772,7 +807,7 @@ app.get('/api/get-zodiac',async (req, res) => {
 app.get('/api/get-zodiac/:id',async (req, res) => {
   const { id } = req.params;
   if(!id){ res.send({ message: "ต้องมี ID", status: false });}
-  const sql = "SELECT * FROM Zodiac WHERE Zodiac_ID = ?";
+  const sql = "SELECT * FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) throw err;
     if(results.length > 0){
@@ -792,7 +827,7 @@ app.put('/api/update-Zodiac-image/:id', upload.single('Zodiac_Image') ,async (re
   if(!id){ return res.send({ message: "ต้องมี ID", status: false });}
   if (!req.file) { return res.send({ message: "ต้องมีภาพประกอบ", status: false });}
 
-  const sql_check_id = "SELECT COUNT(*) AS count FROM Zodiac WHERE Zodiac_ID = ?";
+  const sql_check_id = "SELECT COUNT(*) AS count FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) throw err;
 
@@ -806,7 +841,7 @@ app.put('/api/update-Zodiac-image/:id', upload.single('Zodiac_Image') ,async (re
           .resize(1280, 1280) //1280x1280 pixels
           .toFile(resizedImagePath);
         const Zodiac_ImageURL = `/images/zodiac-images/${uniqueName}${ext}`;
-        const sql = "UPDATE Zodiac SET Zodiac_ImageFile = ? WHERE Zodiac_ID = ?";
+        const sql = "UPDATE zodiac SET Zodiac_ImageFile = ? WHERE Zodiac_ID = ?";
         db.query(sql, [Zodiac_ImageURL, id], (err, result) => {
           if (err) throw err;
           if(result.affectedRows > 0){
@@ -837,7 +872,7 @@ app.delete('/api/delete-zodiac-image/:id', async (req, res) => {
       return res.send({ message: "ต้องมี imagePath", status: false });
   }
 
-  const sql = "SELECT Zodiac_ImageFile FROM Zodiac WHERE Zodiac_ID = ?";
+  const sql = "SELECT Zodiac_ImageFile FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql, [id], async (err, result) => {
     if (err) throw err;
     if(result.length > 0){
@@ -911,48 +946,31 @@ app.post('/api/check-zodiac', async (req, res) => {
   res.send({ Zodiac_ID: zodiacNumber, message: "ราศีของคุณคือ" + zodiacData, status: true });
 });
 
-//Insert Card Data API
-app.post('/api/card-data', async (req, res) => {
-  const {Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic } = req.body;
-
-  if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic ){
-    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
-  }
-
-  const sql = "INSERT INTO Card (Card_Name, Card_WorkTopic, Card_FinanceTopic" + 
-  ", Card_LoveTopic)VALUES(?,?,?,?)";
-  db.query(sql,[Card_Name,Card_WorkTopic,Card_FinanceTopic,Card_LoveTopic], (err,result) => {
-    if (err) throw err;
-    if(result.affectedRows > 0){
-      res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
-    }else{
-      res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
-    }
-  });
-});
-
+//////////////////////////////////Card API///////////////////////////////////////
 //Update Card API
 app.put('/api/update-card/:id',async (req, res) => {
   const { id } = req.params;
-  const {Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic, Card_Score } = req.body;
+  const {Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic, 
+    Card_WorkScore, Card_FinanceScore, Card_LoveScore } = req.body;
 
   if(!id){
     return res.send({ message: "ต้องมี ID", status: false });
   }
 
-  if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic || !Card_Score ){
+  if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic ||
+     !Card_WorkScore || !Card_FinanceScore || !Card_LoveScore ){
     return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
-  const sql_check_id = "SELECT COUNT(*) AS count FROM Card WHERE Card_ID = ?";
+  const sql_check_id = "SELECT COUNT(*) AS count FROM card WHERE Card_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) throw err;
 
     if (result[0].count > 0) {
-      const sql = "UPDATE Card SET Card_Name = ?, Card_WorkTopic = ?, Card_FinanceTopic = ?" +
-        ",Card_LoveTopic = ?, Card_Score = ? WHERE Card_ID = ?"
+      const sql = "UPDATE card SET Card_Name = ?, Card_WorkTopic = ?, Card_FinanceTopic = ?" +
+        ",Card_LoveTopic = ?, Card_WorkScore = ?, Card_FinanceScore = ?, Card_LoveScore = ? WHERE Card_ID = ?"
       db.query(sql,[Card_Name, Card_WorkTopic, Card_FinanceTopic, 
-        Card_LoveTopic, Card_Score], (err,result)=> {
+        Card_LoveTopic, Card_WorkScore, Card_FinanceScore, Card_LoveScore, id], (err,result)=> {
         if (err) throw err;
         if(result.affectedRows > 0){
           res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
@@ -972,7 +990,7 @@ app.put('/api/update-card-image/:id', upload.single('Card_Image') ,async (req, r
   if(!id){ return res.send({ message: "ต้องมี ID", status: false });}
   if (!req.file) { return res.send({ message: "ต้องมีภาพประกอบ", status: false });}
 
-  const sql_check_id = "SELECT COUNT(*) AS count FROM Card WHERE Card_ID = ?";
+  const sql_check_id = "SELECT COUNT(*) AS count FROM card WHERE Card_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) throw err;
 
@@ -986,7 +1004,7 @@ app.put('/api/update-card-image/:id', upload.single('Card_Image') ,async (req, r
           .resize(285, 500) //285x500 pixels
           .toFile(resizedImagePath);
         const Card_ImageURL = `/images/card-images/${uniqueName}${ext}`;
-        const sql = "UPDATE Card SET Card_ImageFile = ? WHERE Card_ID = ?";
+        const sql = "UPDATE card SET Card_ImageFile = ? WHERE Card_ID = ?";
         db.query(sql, [Card_ImageURL, id], (err, result) => {
           if (err) throw err;
           if(result.affectedRows > 0){
@@ -1017,7 +1035,7 @@ app.delete('/api/delete-card-image/:id', async (req, res) => {
       return res.send({ message: "ต้องมี imagePath", status: false });
   }
 
-  const sql = "SELECT Card_ImageFile FROM Card WHERE Card_ID = ?";
+  const sql = "SELECT Card_ImageFile FROM card WHERE Card_ID = ?";
   db.query(sql, [id], async (err, result) => {
     if (err) throw err;
     if(result.length > 0){
@@ -1053,7 +1071,7 @@ app.delete('/api/delete-card-image/:id', async (req, res) => {
 
 //API Get count of Card
 app.get('/api/get-count-card',async (req, res) => {
-  const sql = "SELECT COUNT(*) AS Count FROM Card";
+  const sql = "SELECT COUNT(*) AS Count FROM card";
   db.query(sql, (err, results) => {
     if (err) throw err;
       const CardData = results[0];
@@ -1067,7 +1085,7 @@ app.get('/api/get-count-card',async (req, res) => {
 app.get('/api/get-card/:id',async (req, res) => {
   const { id } = req.params;
   if(!id){ res.send({ message: "ต้องมี ID", status: false });}
-  const sql = "SELECT * FROM Card WHERE Card_ID = ?";
+  const sql = "SELECT * FROM card WHERE Card_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) throw err;
     if(results.length > 0){
@@ -1083,7 +1101,7 @@ app.get('/api/get-card/:id',async (req, res) => {
 
 //API Get Card
 app.get('/api/get-card',async (req, res) => {
-  const sql = "SELECT * FROM Card";
+  const sql = "SELECT * FROM card";
   db.query(sql, (err, results) => {
     if (err) throw err;
     if(results.length > 0){
@@ -1096,6 +1114,7 @@ app.get('/api/get-card',async (req, res) => {
   });
 });
 
+//////////////////////////////////PlayCard API///////////////////////////////////////
 //API Add PlayCard
 app.post('/api/add-playcard', async (req, res) => {
   const {Users_ID, Card_ID } = req.body;
@@ -1104,7 +1123,7 @@ app.post('/api/add-playcard', async (req, res) => {
     res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
-  const sql = "INSERT INTO PlayCard( Users_ID, Card_ID)VALUES(?,?)";
+  const sql = "INSERT INTO playcard( Users_ID, Card_ID)VALUES(?,?)";
   db.query(sql,[Users_ID,Card_ID], (err,result) => {
     if (err) throw err;
     if(result.affectedRows > 0){
@@ -1115,9 +1134,81 @@ app.post('/api/add-playcard', async (req, res) => {
   });
 });
 
+
+//////////////////////////////////HandDetail API///////////////////////////////////////
+//Update HandDetail API
+app.put('/api/update-handdetail/:id',async (req, res) => {
+  const { id } = req.params;
+  const {HandDetail_Name, HandDetail_Detail, HandDetail_MinPercent } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if(!HandDetail_Name || !HandDetail_Detail || !HandDetail_MinPercent ){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM handdetail WHERE HandDetail_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      const sql = "UPDATE handdetail SET HandDetail_Name = ?, HandDetail_Detail = ?" +
+      ", HandDetail_MinPercent = ? WHERE HandDetail_ID = ?"
+      db.query(sql,[ HandDetail_Name, HandDetail_Detail, HandDetail_MinPercent, id], (err,result)=> {
+        if (err) throw err;
+        if(result.affectedRows > 0){
+          res.send({ message: "แก้ไขข้อมูลสำเร็จ",status: true });
+        }else{
+          res.send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
+        }
+      });
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//////////////////////////////////SummaryDetail API///////////////////////////////////////
+//Update SummaryDetail API
+app.put('/api/update-SummaryDetail/:id',async (req, res) => {
+  const { id } = req.params;
+  const {SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent } = req.body;
+
+  if(!id){
+    return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if(!SummaryDetail_Name || !SummaryDetail_Detail || !SummaryDetail_MinPercent ){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM summarydetail WHERE SummaryDetail_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+    if (err) throw err;
+
+    if (result[0].count > 0) {
+      const sql = "UPDATE summarydetail SET SummaryDetail_Name = ?, SummaryDetail_Detail = ?" +
+      ", SummaryDetail_MinPercent = ? WHERE SummaryDetail_ID = ?"
+      db.query(sql,[ SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent, id], (err,result)=> {
+        if (err) throw err;
+        if(result.affectedRows > 0){
+          res.send({ message: "แก้ไขข้อมูลสำเร็จ",status: true });
+        }else{
+          res.send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
+        }
+      });
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//////////////////////////////////Dashboard Of Web React///////////////////////////////////////
 //API Get count of Users
 app.get('/api/get-count-users',async (req, res) => {
-  const sql = "SELECT COUNT(*) AS Count FROM Users";
+  const sql = "SELECT COUNT(*) AS Count FROM users";
   db.query(sql, (err, results) => {
     if (err) throw err;
       const CardData = results[0];
@@ -1129,7 +1220,7 @@ app.get('/api/get-count-users',async (req, res) => {
 
 //API Get count of Users Online
 app.get('/api/get-count-users-online',async (req, res) => {
-  const sql = "SELECT COUNT(*) AS Count FROM Users WHERE Users_IsActive = 1";
+  const sql = "SELECT COUNT(*) AS Count FROM users WHERE Users_IsActive = 1";
   db.query(sql, (err, results) => {
     if (err) throw err;
       const CardData = results[0];
@@ -1141,7 +1232,7 @@ app.get('/api/get-count-users-online',async (req, res) => {
 
 //API Get count of Users Offline
 app.get('/api/get-count-users-offline',async (req, res) => {
-  const sql = "SELECT COUNT(*) AS Count FROM Users WHERE Users_IsActive = 0";
+  const sql = "SELECT COUNT(*) AS Count FROM users WHERE Users_IsActive = 0";
   db.query(sql, (err, results) => {
     if (err) throw err;
       const CardData = results[0];
@@ -1150,6 +1241,7 @@ app.get('/api/get-count-users-offline',async (req, res) => {
       res.send(CardData);
   });
 });
+///////////////////////////////////////////////////////////////////////////////////////////////
 
 
 app.listen(process.env.SERVER_PORT, function() {

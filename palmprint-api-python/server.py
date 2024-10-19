@@ -11,27 +11,36 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route('/upload', methods=['POST'])
+@app.route('/api/palmprint-ai', methods=['POST'])
 def upload_file():
     if 'palmprint' not in request.files:
-        return jsonify({'error': 'No file part'})
+        return jsonify({'message': 'ไม่มีไฟล์รูป', 'status': False})
 
     file = request.files['palmprint']
     if file.filename == '':
-        return jsonify({'error': 'No selected file'})
+        return jsonify({'message': 'ไม่ไดเลือกไฟล์รูป', 'status': False})
 
     # สร้างชื่อไฟล์แบบสุ่ม
     random_filename = str(uuid.uuid4()) + '.png'  # ใช้ .png หรือประเภทไฟล์ที่เหมาะสม
     file_path = os.path.join(UPLOAD_FOLDER, random_filename)
     file.save(file_path)
 
-    similarity = process_image(file_path)
-    return jsonify({'result': similarity})
+    # ปรับเส้นทางของไฟล์เป็น "/" แทน "\\"
+    returnPath = "/palmprint-api-python/" + file_path.replace("\\", "/")
+
+    try:
+        similarity = process_image(file_path)
+        return jsonify({'message': 'ประมวลผลไฟล์รูปสำเร็จ', 'status': True, 'result': similarity, 'image_path': returnPath})
+    except Exception as e:
+        return jsonify({'message': f'เกิดข้อผิดพลาดในการประมวลผลภาพ: {str(e)}', 'status': False})
 
 def process_image(image_path):
     # อ่านภาพ palmprint และภาพเฉลย
     image = cv2.imread(image_path)
     reference_image = cv2.imread('palmprint_origin.png', cv2.IMREAD_GRAYSCALE)
+
+    if image is None or reference_image is None:
+        raise ValueError('Failed to load images.')
 
     # แปลงภาพเป็นขาวดำ
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
