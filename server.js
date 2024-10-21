@@ -1134,6 +1134,38 @@ app.post('/api/add-playcard', async (req, res) => {
   });
 });
 
+//API Get PlayCard By ID
+app.get('/api/get-playcard/:id',async (req, res) => {
+  const { id } = req.params;
+  if(!id){ res.send({ message: "ต้องมี ID", status: false });}
+  const sql = "SELECT * FROM playcard WHERE PlayCard_ID = ?";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Get PlayCard
+app.get('/api/get-playcard',async (req, res) => {
+  const sql = "SELECT * FROM playcard";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  
+  });
+});
 
 //////////////////////////////////HandDetail API///////////////////////////////////////
 //Update HandDetail API
@@ -1170,9 +1202,42 @@ app.put('/api/update-handdetail/:id',async (req, res) => {
   });
 });
 
+//API Get HandDetail By ID
+app.get('/api/get-handdetail/:id',async (req, res) => {
+  const { id } = req.params;
+  if(!id){ res.send({ message: "ต้องมี ID", status: false });}
+  const sql = "SELECT * FROM handdetail WHERE HandDetail_ID = ?";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Get PlayCard
+app.get('/api/get-handdetail',async (req, res) => {
+  const sql = "SELECT * FROM handdetail";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  
+  });
+});
+
 //////////////////////////////////SummaryDetail API///////////////////////////////////////
 //Update SummaryDetail API
-app.put('/api/update-SummaryDetail/:id',async (req, res) => {
+app.put('/api/update-summarydetail/:id',async (req, res) => {
   const { id } = req.params;
   const {SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent } = req.body;
 
@@ -1202,6 +1267,39 @@ app.put('/api/update-SummaryDetail/:id',async (req, res) => {
     }else{
       res.send({ message: "ไม่พบข้อมูล",status: false });
     }
+  });
+});
+
+//API Get SummaryDetail By ID
+app.get('/api/get-summarydetail/:id',async (req, res) => {
+  const { id } = req.params;
+  if(!id){ res.send({ message: "ต้องมี ID", status: false });}
+  const sql = "SELECT * FROM summarydetail WHERE SummaryDetail_ID = ?";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results[0];
+      CardData['message'] = "ทำรายการสำเร็จ"
+      CardData['status'] = true
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Get SummaryDetail
+app.get('/api/get-summarydetail',async (req, res) => {
+  const sql = "SELECT * FROM summarydetail";
+  db.query(sql, (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const CardData = results
+      res.send(CardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  
   });
 });
 
