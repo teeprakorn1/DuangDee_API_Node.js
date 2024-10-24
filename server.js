@@ -1220,7 +1220,7 @@ app.get('/api/get-handdetail/:id',async (req, res) => {
   });
 });
 
-//API Get PlayCard
+//API Get HandDetail
 app.get('/api/get-handdetail',async (req, res) => {
   const sql = "SELECT * FROM handdetail";
   db.query(sql, (err, results) => {
@@ -1232,6 +1232,26 @@ app.get('/api/get-handdetail',async (req, res) => {
       res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   
+  });
+});
+
+//////////////////////////////////PlayHand API///////////////////////////////////////
+//API Add PlayHand
+app.post('/api/add-playhand', async (req, res) => {
+  const {Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile } = req.body;
+
+  if(!Users_ID || !HandDetail_ID || !PlayHand_Score || !PlayHand_ImageFile ){
+    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  const sql = "INSERT INTO playhand( Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile )VALUES(?,?,?,?)";
+  db.query(sql,[Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile], (err,result) => {
+    if (err) throw err;
+    if(result.affectedRows > 0){
+      res.send({ message: "จัดการข้อมูลสำเร็จ",status: true });
+    }else{
+      res.send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
+    }
   });
 });
 

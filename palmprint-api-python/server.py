@@ -87,7 +87,10 @@ def process_image(image_path):
     # คำนวณเปอร์เซ็นต์เส้นใน palmprint ที่ตรงกับเส้นในภาพเฉลย
     similarity_percentage_lines = (white_pixels_masked_palmprint / white_pixels_reference) * 100 if white_pixels_reference > 0 else 0
 
+    if similarity_percentage_lines > 100:
+        similarity_percentage_lines = 100
+
     return round(similarity_percentage_lines, 2)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
