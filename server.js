@@ -1322,6 +1322,40 @@ app.get('/api/get-summarydetail',async (req, res) => {
   
   });
 });
+//////////////////////////////////History PlayHand///////////////////////////////////////
+//API Get PlayHand By Top 7 RegisDate time
+app.get('/api/get-playhand-top7/:id',async (req, res) => {
+  const { id } = req.params;
+  if(!id){ res.send({ message: "ต้องมี ID", status: false });}
+  const sql = "SELECT * FROM playhand WHERE Users_ID = ? ORDER BY PlayHand_RegisDate DESC LIMIT 7";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const playHandData = results
+      res.send(playHandData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  });
+});
+
+//API Get PlayCard By Top 7 RegisDate time
+app.get('/api/get-playcard-top7/:id',async (req, res) => {
+  const { id } = req.params;
+  if(!id){ res.send({ message: "ต้องมี ID", status: false });}
+  const sql = "SELECT * FROM playcard WHERE Users_ID = ? ORDER BY PlayCard_RegisDate DESC LIMIT 7";
+  db.query(sql, [id], (err, results) => {
+    if (err) throw err;
+    if(results.length > 0){
+      const PlayCardData = results
+      res.send(PlayCardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false })
+    }
+  });
+});
+
+
 
 //////////////////////////////////Dashboard Of Web React///////////////////////////////////////
 //API Get count of Users
@@ -1357,6 +1391,66 @@ app.get('/api/get-count-users-offline',async (req, res) => {
       CardData['message'] = "ทำรายการสำเร็จ"
       CardData['status'] = true
       res.send(CardData);
+  });
+});
+
+//API Get count of playhand
+app.get('/api/count-playhand', (req, res) => {
+  const query = 'SELECT COUNT(PlayHand_ID) AS Count FROM playhand';
+  db.query(query, (err, results) => {
+    if (err) throw err;
+    const playhand = results[0];
+    playhand['message'] = "ทำรายการสำเร็จ"
+    playhand['status'] = true
+    res.send(playhand);
+  });
+});
+
+//API Get count of playcard
+app.get('/api/count-playcard', (req, res) => {
+  const query = 'SELECT COUNT(PlayCard_ID) AS Count FROM playcard';
+  db.query(query, (err, results) => {
+    if (err) throw err;
+    const playcard = results[0];
+    playcard['message'] = "ทำรายการสำเร็จ"
+    playcard['status'] = true
+    res.send(playcard);
+  });
+});
+
+//API Get count of playcard By Date
+app.get('/api/count-playcard-date', (req, res) => {
+  const {Month , Years } = req.body;
+
+  if(!Month || !Years ){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+  const query = 'SELECT COUNT(*) AS Count FROM playcard WHERE ' +
+  'MONTH(PlayCard_RegisDate) = ? AND YEAR(PlayCard_RegisDate) = ?';
+  db.query(query,[ Month, Years], (err, results) => {
+    if (err) throw err;
+    const playcard = results[0];
+    playcard['message'] = "ทำรายการสำเร็จ"
+    playcard['status'] = true
+    res.send(playcard);
+  });
+});
+
+//API Get count of playhand By Date
+app.get('/api/count-playhand-date', (req, res) => {
+  const {Month , Years } = req.body;
+
+  if(!Month || !Years ){
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+  const query = 'SELECT COUNT(*) AS Count FROM playhand WHERE ' +
+  'MONTH(PlayHand_RegisDate) = ? AND YEAR(PlayHand_RegisDate) = ?';
+  db.query(query,[ Month, Years], (err, results) => {
+    if (err) throw err;
+    const playhand = results[0];
+    playhand['message'] = "ทำรายการสำเร็จ"
+    playhand['status'] = true
+    res.send(playhand);
   });
 });
 ///////////////////////////////////////////////////////////////////////////////////////////////
