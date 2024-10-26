@@ -1,0 +1,12 @@
+Sat 10/26/2024 20:00:24.63 
+Example app listening on port 3000
+E:\android-project\DuangDee_API_Node.js\server.js:440
+    if (result[0].count > 0) {
+    ^
+
+ReferenceError: result is not defined
+    at Query.onResult (E:\android-project\DuangDee_API_Node.js\server.js:440:5)
+    at E:\android-project\DuangDee_API_Node.js\node_modules\mysql2\lib\commands\query.js:86:16
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+
+Node.js v20.18.0
