@@ -1531,91 +1531,117 @@ app.put('/api/update-profile-web/:id', VerifyTokens ,async (req, res) => {
 });
 
 //Update Zodiac API web admin
-app.put('/api/update-zodiac/:id', VerifyTokens ,async (req, res) => {
+app.put('/api/update-zodiac/:id', VerifyTokens, async (req, res) => {
   const { id } = req.params;
-  let {Zodiac_Name, Zodiac_Detail, Zodiac_WorkTopic, Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score } = req.body;
-
-  if(!id || typeof id !== 'string'){
-    return res.send({ message: "ต้องมี ID", status: false });
+  let { Zodiac_Name, Zodiac_Detail, Zodiac_WorkTopic, Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score } = req.body;
+ 
+  if (!id || typeof id !== 'string') {
+    return res.status(404).send({ message: "ต้องมี ID", status: false });
   }
-
-  if(!Zodiac_Name || !Zodiac_Detail || !Zodiac_WorkTopic || !Zodiac_FinanceTopic || !Zodiac_LoveTopic || !Zodiac_Score ||
+ 
+  if (!Zodiac_Name || !Zodiac_Detail || !Zodiac_WorkTopic || !Zodiac_FinanceTopic || !Zodiac_LoveTopic ||
     typeof Zodiac_Name !== "string" || typeof Zodiac_Detail !== "string" || typeof Zodiac_WorkTopic !== "string" ||
-    typeof Zodiac_FinanceTopic !== "string" || typeof Zodiac_LoveTopic !== "string" || typeof Zodiac_Score !== "string"){
-    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    typeof Zodiac_FinanceTopic !== "string" || typeof Zodiac_LoveTopic !== "string") {
+    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
-
-  Zodiac_Name = xss(validator.escape(Zodiac_Name))
-  Zodiac_Detail = xss(validator.escape(Zodiac_Detail))
-  Zodiac_WorkTopic = xss(validator.escape(Zodiac_WorkTopic))
-  Zodiac_FinanceTopic = xss(validator.escape(Zodiac_FinanceTopic))
-  Zodiac_LoveTopic = xss(validator.escape(Zodiac_LoveTopic))
-  Zodiac_Score = xss(validator.escape(Zodiac_Score))
-
-  if(req.users_decoded.UsersType_ID != 2){
-    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+ 
+  // ตรวจสอบและแปลงคะแนนเป็น string ถ้าค่ามีจริงและเป็น number
+  if (Zodiac_Score !== undefined && typeof Zodiac_Score === "number") {
+    Zodiac_Score = Zodiac_Score.toString();
   }
-
+ 
+  Zodiac_Name = xss(validator.escape(Zodiac_Name));
+  Zodiac_Detail = xss(validator.escape(Zodiac_Detail));
+  Zodiac_WorkTopic = xss(validator.escape(Zodiac_WorkTopic));
+  Zodiac_FinanceTopic = xss(validator.escape(Zodiac_FinanceTopic));
+  Zodiac_LoveTopic = xss(validator.escape(Zodiac_LoveTopic));
+  Zodiac_Score = Zodiac_Score ? xss(validator.escape(Zodiac_Score)) : Zodiac_Score;
+ 
+  if (req.users_decoded.UsersType_ID != 2) {
+    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+ 
   const sql_check_id = "SELECT COUNT(*) AS count FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
-    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-
+    if (err) {
+      return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+    }
+ 
     if (result[0].count > 0) {
-      const sql = "UPDATE zodiac SET Zodiac_Name = ?, Zodiac_Detail = ?, Zodiac_WorkTopic = ?" +
-        ",Zodiac_FinanceTopic = ?, Zodiac_LoveTopic = ?, Zodiac_Score = ? WHERE Zodiac_ID = ?"
-      db.query(sql,[Zodiac_Name, Zodiac_Detail, Zodiac_WorkTopic, 
-        Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score, id], (err,result)=> {
-        if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-        if(result.affectedRows > 0){
-          res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
-        }else{
-          res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
+      const sql = `UPDATE zodiac SET Zodiac_Name = ?, Zodiac_Detail = ?, Zodiac_WorkTopic = ?, Zodiac_FinanceTopic = ?,
+       Zodiac_LoveTopic = ?, Zodiac_Score = COALESCE(?, Zodiac_Score) WHERE Zodiac_ID = ?`;
+      db.query(sql, [Zodiac_Name, Zodiac_Detail, Zodiac_WorkTopic, Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score, id], (err, result) => {
+        if (err) {
+          return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+        }
+        if (result.affectedRows > 0) {
+          res.send({ message: "เพิ่มข้อมูลสำเร็จ", status: true });
+        } else {
+          res.status(404).send({ message: "เพิ่มข้อมูลไม่สำเร็จ", status: false });
         }
       });
-    }else{
-      res.send({ message: "ไม่พบข้อมูล",status: false });
+    } else {
+      res.status(404).send({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
 
 //API Update Zodiac Image
-app.put('/api/update-Zodiac-image/:id' , VerifyTokens, upload.single('Zodiac_Image') ,async (req, res) => {
+app.put('/api/update-Zodiac-image/:id', VerifyTokens, upload.single('Zodiac_Image'), async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ return res.send({ message: "ต้องมี ID", status: false });}
-  if (!req.file) { return res.send({ message: "ต้องมีภาพประกอบ", status: false });}
-
-  if(req.users_decoded.UsersType_ID != 2){
-    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+ 
+  // Check if ID is provided
+  if (!id || typeof id !== 'string') {
+    return res.status(400).json({ message: "ต้องมี ID", status: false });
   }
-  
+ 
+  // Check if file is uploaded
+  if (!req.file) {
+    return res.status(400).json({ message: "ต้องมีภาพประกอบ", status: false });
+  }
+ 
+  // Check user permissions
+  if (req.users_decoded.UsersType_ID != 2) {
+    return res.status(403).json({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+ 
+  // Check if the zodiac ID exists in the database
   const sql_check_id = "SELECT COUNT(*) AS count FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
-    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-
+    if (err) {
+      return res.status(500).json({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+    }
+ 
     if (result[0].count > 0) {
       const uniqueName = uuidv4();
       const ext = path.extname(req.file.originalname);
       const resizedImagePath = path.join(uploadDir_Zodiac, `${uniqueName}${ext}`);
-
+ 
       try {
         await sharp(req.file.buffer)
-          .resize(1280, 1280) //1280x1280 pixels
+          .resize(1280, 1280, { fit: sharp.fit.cover }) // Resizing and maintaining aspect ratio
           .toFile(resizedImagePath);
+       
         const Zodiac_ImageURL = `/images/zodiac-images/${uniqueName}${ext}`;
+       
+        // Update the database with the new image URL
         const sql = "UPDATE zodiac SET Zodiac_ImageFile = ? WHERE Zodiac_ID = ?";
         db.query(sql, [Zodiac_ImageURL, id], (err, result) => {
-          if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-          if(result.affectedRows > 0){
-            res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
-          }else{
-            res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+          if (err) {
+            return res.status(500).json({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+          }
+ 
+          if (result.affectedRows > 0) {
+            return res.json({ message: "อัพเดทรูปภาพสำเร็จ", status: true });
+          } else {
+            return res.status(404).json({ message: "ไม่สามารถอัพเดทข้อมูลได้", status: false });
           }
         });
-      }catch (error) {
-        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+      } catch (error) {
+        return res.status(500).json({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
       }
-    }else{
-      res.send({ message: "ไม่พบข้อมูล",status: false });
+    } else {
+      return res.status(404).json({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
@@ -1674,54 +1700,71 @@ app.delete('/api/delete-zodiac-image/:id', VerifyTokens, async (req, res) => {
 });
 
 //Update Card API
-app.put('/api/update-card/:id' , VerifyTokens ,async (req, res) => {
+app.put('/api/update-card/:id', VerifyTokens, async (req, res) => {
   const { id } = req.params;
-  let {Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic, 
-    Card_WorkScore, Card_FinanceScore, Card_LoveScore } = req.body;
-
-  if(!id || typeof id !== 'string'){
-    return res.send({ message: "ต้องมี ID", status: false });
+  let { Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic, Card_WorkScore, Card_FinanceScore, Card_LoveScore } = req.body;
+ 
+  if (!id || typeof id !== 'string') {
+    return res.status(404).send({ message: "ต้องมี ID", status: false });
   }
-
-  if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic ||
-     !Card_WorkScore || !Card_FinanceScore || !Card_LoveScore || 
+ 
+  if (!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic ||
+    (Card_WorkScore === undefined && Card_FinanceScore === undefined && Card_LoveScore === undefined) ||
     typeof Card_Name !== "string" || typeof Card_WorkTopic !== "string" ||
-    typeof Card_FinanceTopic !== "string" || typeof Card_LoveTopic !== "string" ||
-    typeof Card_WorkScore !== "string" || typeof Card_FinanceScore !== "string" ||
-    typeof Card_LoveScore !== "string"){
-    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    typeof Card_FinanceTopic !== "string" || typeof Card_LoveTopic !== "string") {
+    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
-
+ 
+  // แปลงคะแนนเป็น string ถ้าค่ามีจริงและเป็น number
+  if (Card_WorkScore !== undefined && typeof Card_WorkScore === "number") {
+    Card_WorkScore = Card_WorkScore.toString();
+  }
+  if (Card_FinanceScore !== undefined && typeof Card_FinanceScore === "number") {
+    Card_FinanceScore = Card_FinanceScore.toString();
+  }
+  if (Card_LoveScore !== undefined && typeof Card_LoveScore === "number") {
+    Card_LoveScore = Card_LoveScore.toString();
+  }
+ 
   Card_Name = xss(validator.escape(Card_Name));
   Card_WorkTopic = xss(validator.escape(Card_WorkTopic));
   Card_FinanceTopic = xss(validator.escape(Card_FinanceTopic));
   Card_LoveTopic = xss(validator.escape(Card_LoveTopic));
-  Card_WorkScore = xss(validator.escape(Card_WorkScore));
-  Card_FinanceScore = xss(validator.escape(Card_FinanceScore));
-  Card_LoveScore = xss(validator.escape(Card_LoveScore));
-
-  if(req.users_decoded.UsersType_ID != 2){
-    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  Card_WorkScore = Card_WorkScore ? xss(validator.escape(Card_WorkScore)) : Card_WorkScore;
+  Card_FinanceScore = Card_FinanceScore ? xss(validator.escape(Card_FinanceScore)) : Card_FinanceScore;
+  Card_LoveScore = Card_LoveScore ? xss(validator.escape(Card_LoveScore)) : Card_LoveScore;
+ 
+  if (req.users_decoded.UsersType_ID !== 2) {
+    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
-
+ 
   const sql_check_id = "SELECT COUNT(*) AS count FROM card WHERE Card_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
-    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-
+    if (err) {
+      return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+    }
+ 
     if (result[0].count > 0) {
-      const sql = "UPDATE card SET Card_Name = ?, Card_WorkTopic = ?, Card_FinanceTopic = ?" +
-        ",Card_LoveTopic = ?, Card_WorkScore = ?, Card_FinanceScore = ?, Card_LoveScore = ? WHERE Card_ID = ?"
-      db.query(sql,[Card_Name, Card_WorkTopic, Card_FinanceTopic, 
-        Card_LoveTopic, Card_WorkScore, Card_FinanceScore, Card_LoveScore, id], (err,result)=> {
-        if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-        if(result.affectedRows > 0){
-          res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
-        }else{
-          res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
+      const sql = `
+        UPDATE card
+        SET Card_Name = ?, Card_WorkTopic = ?, Card_FinanceTopic = ?,
+            Card_LoveTopic = ?, Card_WorkScore = COALESCE(?, Card_WorkScore),
+            Card_FinanceScore = COALESCE(?, Card_FinanceScore),
+            Card_LoveScore = COALESCE(?, Card_LoveScore)
+        WHERE Card_ID = ?
+      `;
+      db.query(sql, [Card_Name, Card_WorkTopic, Card_FinanceTopic, Card_LoveTopic, Card_WorkScore, Card_FinanceScore, Card_LoveScore, id], (err, result) => {
+        if (err) {
+          return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+        }
+        if (result.affectedRows > 0) {
+          res.send({ message: "เพิ่มข้อมูลสำเร็จ", status: true });
+        } else {
+          res.status(404).send({ message: "เพิ่มข้อมูลไม่สำเร็จ", status: false });
         }
       });
-    }else{
-      res.send({ message: "ไม่พบข้อมูล",status: false });
+    } else {
+      res.status(404).send({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
@@ -1863,38 +1906,46 @@ app.get('/api/get-playcard', VerifyTokens ,async (req, res) => {
 app.put('/api/update-handdetail/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
   let {HandDetail_Name, HandDetail_Detail, HandDetail_MinPercent } = req.body;
-
+ 
   if(!id || typeof id !== 'string'){
-    return res.send({ message: "ต้องมี ID", status: false });
+    return res.status(404).send({ message: "ต้องมี ID", status: false });
   }
-
-  if(!HandDetail_Name || !HandDetail_Detail || !HandDetail_MinPercent ||
-    typeof HandDetail_Name !== "string" || typeof HandDetail_Detail !== "string" ||
-    typeof HandDetail_MinPercent !== "string"){
-    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+ 
+  if(!HandDetail_Name || !HandDetail_Detail || HandDetail_MinPercent === undefined ||
+    typeof HandDetail_Name !== "string" || typeof HandDetail_Detail !== "string"){
+    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
-
+ 
+  // ตรวจสอบและแปลงค่าเป็น string ถ้าเป็นตัวเลข
+  if (typeof HandDetail_MinPercent === "number") {
+    HandDetail_MinPercent = HandDetail_MinPercent.toString();
+  }
+ 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
-
+ 
   const sql_check_id = "SELECT COUNT(*) AS count FROM handdetail WHERE HandDetail_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-
+ 
     if (result[0].count > 0) {
-      const sql = "UPDATE handdetail SET HandDetail_Name = ?, HandDetail_Detail = ?" +
-      ", HandDetail_MinPercent = ? WHERE HandDetail_ID = ?"
-      db.query(sql,[ HandDetail_Name, HandDetail_Detail, HandDetail_MinPercent, id], (err,result)=> {
-        if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-        if(result.affectedRows > 0){
-          res.send({ message: "แก้ไขข้อมูลสำเร็จ",status: true });
-        }else{
-          res.send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
+      const sql = `
+        UPDATE handdetail
+        SET HandDetail_Name = ?, HandDetail_Detail = ?,
+            HandDetail_MinPercent = COALESCE(?, HandDetail_MinPercent)
+        WHERE HandDetail_ID = ?
+      `;
+      db.query(sql, [HandDetail_Name, HandDetail_Detail, HandDetail_MinPercent, id], (err, result) => {
+        if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false }); }
+        if (result.affectedRows > 0) {
+          res.send({ message: "แก้ไขข้อมูลสำเร็จ", status: true });
+        } else {
+          res.status(404).send({ message: "แก้ไขข้อมูลไม่สำเร็จ", status: false });
         }
       });
-    }else{
-      res.send({ message: "ไม่พบข้อมูล",status: false });
+    } else {
+      res.status(404).send({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
@@ -1917,46 +1968,54 @@ app.get('/api/get-handdetail', VerifyTokens ,async (req, res) => {
 });
 
 //Update SummaryDetail API
-app.put('/api/update-summarydetail/:id', VerifyTokens , async (req, res) => {
+app.put('/api/update-summarydetail/:id', VerifyTokens, async (req, res) => {
   const { id } = req.params;
-  let {SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent } = req.body;
-
-  if(!id || typeof id !== 'string'){
-    return res.send({ message: "ต้องมี ID", status: false });
+  let { SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent } = req.body;
+ 
+  if (!id || typeof id !== 'string') {
+      return res.status(404).send({ message: "ต้องมี ID", status: false });
   }
-
-  if(!SummaryDetail_Name || !SummaryDetail_Detail || !SummaryDetail_MinPercent ||
-    typeof SummaryDetail_Name !== "string" || typeof SummaryDetail_Detail !== "string" ||
-    typeof SummaryDetail_MinPercent !== "string"){
-    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+ 
+  if (!SummaryDetail_Name || !SummaryDetail_Detail || SummaryDetail_MinPercent === undefined ||
+      typeof SummaryDetail_Name !== "string" || typeof SummaryDetail_Detail !== "string") {
+      return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
-
-  SummaryDetail_Name = xss(validator.escape(SummaryDetail_Name))
-  SummaryDetail_Detail = xss(validator.escape(SummaryDetail_Detail))
-  SummaryDetail_MinPercent = xss(validator.escape(SummaryDetail_MinPercent))
-
-  if(req.users_decoded.UsersType_ID != 2){
-    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+ 
+  // ตรวจสอบและแปลงค่าเป็น string ถ้าเป็นตัวเลข
+  if (typeof SummaryDetail_MinPercent === "number") {
+      SummaryDetail_MinPercent = SummaryDetail_MinPercent.toString();
   }
-
+ 
+  SummaryDetail_Name = xss(validator.escape(SummaryDetail_Name));
+  SummaryDetail_Detail = xss(validator.escape(SummaryDetail_Detail));
+  SummaryDetail_MinPercent = xss(validator.escape(SummaryDetail_MinPercent));
+ 
+  if (req.users_decoded.UsersType_ID != 2) {
+      return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+ 
   const sql_check_id = "SELECT COUNT(*) AS count FROM summarydetail WHERE SummaryDetail_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
-    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-
-    if (result[0].count > 0) {
-      const sql = "UPDATE summarydetail SET SummaryDetail_Name = ?, SummaryDetail_Detail = ?" +
-      ", SummaryDetail_MinPercent = ? WHERE SummaryDetail_ID = ?"
-      db.query(sql,[ SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent, id], (err,result)=> {
-        if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-        if(result.affectedRows > 0){
-          res.send({ message: "แก้ไขข้อมูลสำเร็จ",status: true });
-        }else{
-          res.send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
-        }
-      });
-    }else{
-      res.send({ message: "ไม่พบข้อมูล",status: false });
-    }
+      if (err) {
+          return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+      }
+ 
+      if (result[0].count > 0) {
+          const sql = "UPDATE summarydetail SET SummaryDetail_Name = ?, SummaryDetail_Detail = ?" +
+              ", SummaryDetail_MinPercent = COALESCE(?, SummaryDetail_MinPercent) WHERE SummaryDetail_ID = ?";
+          db.query(sql, [SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent, id], (err, result) => {
+              if (err) {
+                  return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+              }
+              if (result.affectedRows > 0) {
+                  res.send({ message: "แก้ไขข้อมูลสำเร็จ", status: true });
+              } else {
+                  res.status(404).send({ message: "แก้ไขข้อมูลไม่สำเร็จ", status: false });
+              }
+          });
+      } else {
+          res.status(404).send({ message: "ไม่พบข้อมูล", status: false });
+      }
   });
 });
 
@@ -1975,6 +2034,39 @@ app.get('/api/get-summarydetail', VerifyTokens ,async (req, res) => {
       res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   
+  });
+});
+
+//API GET PROFILE WEB
+app.get('/api/get-profile-web/:id', VerifyTokens, async (req, res) => {
+  const { id } = req.params;
+  if (!id || typeof id !== 'string') {
+    return res.status(404).send({ message: "ต้องมี ID", status: false });
+  }
+ 
+  if (req.users_decoded.Users_ID != id && req.users_decoded.UsersType_ID === 1) {
+    return res.status(404).send({ message: 'คุณไม่มีสิทธิ์ทำรายการนี้', status: false });
+  }
+ 
+  const sql = `SELECT u.*, g.UsersGender_Name, ut.UsersType_Name, rt.RegisType_Name
+               FROM ((users u
+               INNER JOIN usersgender g ON u.UsersGender_ID = g.UsersGender_ID)
+               INNER JOIN userstype ut ON u.UsersType_ID = ut.UsersType_ID)
+               INNER JOIN registype rt ON u.RegisType_ID = rt.RegisType_ID
+               WHERE Users_ID = ?`;
+ 
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+    }
+    if (results.length > 0) {
+      const UsersData = results[0];
+      UsersData['message'] = "ทำรายการสำเร็จ";
+      UsersData['status'] = true;
+      res.send(UsersData);
+    } else {
+      res.status(404).send({ message: "ไม่พบผู้ใช้", status: false });
+    }
   });
 });
 

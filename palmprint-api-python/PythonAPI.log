@@ -1,12 +1,11 @@
-Mon 10/28/2024  2:57:55.05 
+Mon 10/28/2024  3:23:45.20 
  * Serving Flask app 'server'
  * Debug mode: on
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5000
- * Running on http://192.168.103.95:5000
+ * Running on http://10.13.3.124:5000
 Press CTRL+C to quit
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 294-829-436
-192.168.103.175 - - [28/Oct/2024 02:58:28] "POST /api/palmprint-ai HTTP/1.1" 200 -
