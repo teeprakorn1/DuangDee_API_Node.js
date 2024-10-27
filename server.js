@@ -1383,21 +1383,21 @@ app.post('/api/login-admin', loginRateLimiter, async (req, res) => {
   Users_Username = xss(validator.escape(Users_Username))
   Users_Password = xss(validator.escape(Users_Password))
 
-  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE (Users_Username = ? OR Users_Email = ?) AND UsersType_ID = 2 AND Users_RegisType_ID = 1 AND Users_IsActive = 1";
+  const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE (Users_Username = ? OR Users_Email = ?) AND UsersType_ID = 2 AND RegisType_ID = 1 AND Users_IsActive = 1";
   db.query(sql_check_username, [Users_Username,Users_Username], async (err, result) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
 
     if (result[0].count > 0) {
-      const sql_get_password = "SELECT Users_Password FROM users WHERE (Users_Username = ? OR Users_Email = ?) AND UsersType_ID = 2 AND Users_RegisType_ID = 1 AND Users_IsActive = 1";
+      const sql_get_password = "SELECT Users_Password FROM users WHERE (Users_Username = ? OR Users_Email = ?) AND UsersType_ID = 2 AND RegisType_ID = 1 AND Users_IsActive = 1";
       db.query(sql_get_password, [Users_Username,Users_Username], async (err, result) => {
         if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
         
         const isCorrect = await bcrypt.compare(Users_Password, result[0].Users_Password);
         if (isCorrect) {
-          const sql = "SELECT * FROM users WHERE (Users_Username = ? OR Users_Email = ?) AND UsersType_ID = 2 AND Users_RegisType_ID = 1 AND Users_IsActive = 1";
+          const sql = "SELECT * FROM users WHERE (Users_Username = ? OR Users_Email = ?) AND UsersType_ID = 2  AND Users_IsActive = 1";
           db.query(sql, [Users_Username,Users_Username], async (err, result) => {
             if (err) {
-              return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+              return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์3', status: false });
             }
 
             const user = result[0];
