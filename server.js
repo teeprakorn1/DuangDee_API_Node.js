@@ -314,7 +314,7 @@ app.post('/api/request-register' ,sendEmailRateLimiter, async (req, res) => {
 app.post('/api/request-password' ,sendEmailRateLimiter, async (req, res) => {
   let { Users_Email, Value } = req.body;
   
-  if (!Users_Email || !Value || typeof Users_Email !== 'string' || typeof Value !== 'number') {
+  if (!Users_Email || !Value || typeof Users_Email !== 'string' || typeof Value !== 'string') {
     return res.status(404).send({ message:'กรุณากรอก Email',status: false });
   }
 
@@ -366,7 +366,7 @@ app.post('/api/verify-otp', (req, res) => {
   let OTP_Check = 0;
 
   if (!Users_Email || !OTP || !Value || 
-    typeof Users_Email !== 'string' || typeof OTP !== 'number' || typeof Value !== 'number'){
+    typeof Users_Email !== 'string' || typeof OTP !== 'string' || typeof Value !== 'string'){
     return res.status(404).send({ message: 'กรุณากรอก Email, OTP และ Value', status: false });
   }
 
@@ -432,7 +432,7 @@ app.post('/api/reset-password', async (req, res) => {
 
 //////////////////////////////////Google OAuth API///////////////////////////////////////
 // API Check Firebase UID
-app.post('/api/check-uid', async (req, res) => {
+app.post('/api/check-uid-firebase', async (req, res) => {
   let { Users_Google_Uid } = req.body;
 
   if (!Users_Google_Uid || typeof Users_Google_Uid !== 'string') {
@@ -507,7 +507,6 @@ app.post('/api/login-uid',async (req, res) => {
 
   Users_Google_Uid = xss(validator.escape(Users_Google_Uid));
 
-
   const sql = "SELECT COUNT(*) AS count FROM users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
   db.query(sql, [Users_Google_Uid], async (err, result) => {
     if (err) throw err
@@ -520,7 +519,7 @@ app.post('/api/login-uid',async (req, res) => {
       }
 
       if (Uid_Storage) {
-        const sql_select_users = "SELECT Users_ID FROM users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
+        const sql_select_users = "SELECT Users_ID, UsersType_ID FROM users WHERE Users_Google_Uid = ? AND RegisType_ID = 2 AND Users_IsActive = 1";
         db.query(sql_select_users, [Users_Google_Uid], async (err, result) => {
           if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
 
@@ -648,7 +647,7 @@ app.delete('/api/delete-profile-image/:id', VerifyTokens, async (req, res) => {
 });
 
 //API Update Profile
-app.put('/api/update-profile/:id' , VerifyTokens ,async (req, res) => {
+app.put('/api/update-profile/:id' , VerifyTokens  ,async (req, res) => {
   const { id } = req.params;
   let { Users_DisplayName, Users_FirstName, Users_LastName,
     Users_Phone, Users_BirthDate, UsersGender_ID, } = req.body;
@@ -661,7 +660,7 @@ app.put('/api/update-profile/:id' , VerifyTokens ,async (req, res) => {
     !Users_LastName || !Users_Phone || !Users_BirthDate || !UsersGender_ID ||
     typeof Users_DisplayName !== 'string' || typeof Users_FirstName !== 'string' ||
     typeof Users_LastName !== 'string' || typeof Users_Phone !== 'string' ||
-    typeof Users_BirthDate !== 'string' || typeof UsersGender_ID !== 'number'){
+    typeof Users_BirthDate !== 'string' || typeof UsersGender_ID !== 'string'){
     return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
@@ -674,7 +673,6 @@ app.put('/api/update-profile/:id' , VerifyTokens ,async (req, res) => {
   Users_LastName = xss(validator.escape(Users_LastName));
   Users_Phone = xss(validator.escape(Users_Phone));
   Users_BirthDate = xss(validator.escape(Users_BirthDate));
-  UsersGender_ID = xss(validator.escape(UsersGender_ID));
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM users WHERE Users_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
@@ -897,34 +895,42 @@ app.get('/api/get-handdetail/:id', VerifyTokens ,async (req, res) => {
   });
 });
 //////////////////////////////////PlayHand API///////////////////////////////////////
-//API Add PlayHand
-app.post('/api/add-playhand', VerifyTokens ,async (req, res) => {
-  let {Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile } = req.body;
+// API Add PlayHand
+app.post('/api/add-playhand', VerifyTokens, async (req, res) => {
+  try {
+    const { Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile } = req.body;
 
-  if(!Users_ID || !HandDetail_ID || !PlayHand_Score || !PlayHand_ImageFile ||
-    typeof Users_ID !== 'string' || typeof HandDetail_ID !== 'string' ||
-    typeof PlayHand_Score !== 'number' || typeof PlayHand_ImageFile !== 'string'){
-    res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
-  }
-
-  if(req.users_decoded.Users_ID != Users_ID){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
-  }
-
-  Users_ID = xss(validator.escape(Users_ID));
-  HandDetail_ID = xss(validator.escape(HandDetail_ID));
-  PlayHand_Score = xss(validator.escape(PlayHand_Score));
-  PlayHand_ImageFile = xss(validator.escape(PlayHand_ImageFile));
-
-  const sql = "INSERT INTO playhand( Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile )VALUES(?,?,?,?)";
-  db.query(sql,[Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile], (err,result) => {
-    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-    if(result.affectedRows > 0){
-      res.send({ message: "จัดการข้อมูลสำเร็จ",status: true });
-    }else{
-      res.status(404).send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
+    if (!Users_ID || !HandDetail_ID || !PlayHand_Score || !PlayHand_ImageFile ||
+      typeof Users_ID !== 'string' || typeof HandDetail_ID !== 'string' ||
+      typeof PlayHand_Score !== 'string' || typeof PlayHand_ImageFile !== 'string') {
+      return res.status(400).send({ message: "ข้อมูลไม่ถูกต้อง", status: false });
     }
-  });
+
+    if (req.users_decoded.Users_ID != Users_ID) {
+      return res.status(403).send({ message: 'คุณไม่มีสิทธิ์ทำรายการนี้', status: false });
+    }
+
+    const sanitizedData = {
+      Users_ID: xss(validator.escape(Users_ID)),
+      HandDetail_ID: xss(validator.escape(HandDetail_ID)),
+      PlayHand_Score: xss(validator.escape(PlayHand_Score)),
+      PlayHand_ImageFile: xss(validator.escape(PlayHand_ImageFile)).replace(/&#x2F;/g, '/')
+    };
+
+    const sql = "INSERT INTO playhand (Users_ID, HandDetail_ID, PlayHand_Score, PlayHand_ImageFile) VALUES (?, ?, ?, ?)";
+    db.query(sql, Object.values(sanitizedData), (err, result) => {
+      if (err) {
+        return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+      }
+      if (result.affectedRows > 0) {
+        res.send({ message: "ทำรายการสำเร็จ", status: true });
+      } else {
+        res.status(500).send({ message: "ไม่สามารถจัดการข้อมูลได้", status: false });
+      }
+    });
+  } catch (error) {
+    res.status(500).send({ message: 'เกิดข้อผิดพลาด', status: false });
+  }
 });
 
 //////////////////////////////////SummaryDetail API///////////////////////////////////////
@@ -952,9 +958,9 @@ app.post('/api/add-summary' , VerifyTokens , async (req, res) => {
   let {Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID } = req.body;
 
   if(!Summary_TotalScore || !Users_ID || !Zodiac_ID || !PlayCard_ID || !PlayHand_ID ||
-    typeof Summary_TotalScore !== 'number' || typeof Users_ID !== 'string' ||
-    typeof Zodiac_ID !== 'number' || typeof PlayCard_ID !== 'number' ||
-    typeof PlayHand_ID !== 'number'){
+    typeof Summary_TotalScore !== 'string' || typeof Users_ID !== 'string' ||
+    typeof Zodiac_ID !== 'string' || typeof PlayCard_ID !== 'string' ||
+    typeof PlayHand_ID !== 'string'){
     res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
@@ -1505,7 +1511,7 @@ app.delete('/api/delete-zodiac-image/:id', VerifyTokens, async (req, res) => {
       return res.status(404).send({ message: "ต้องมี imagePath", status: false });
   }
 
-  imagePath = xss(validator.escape(imagePath));
+  imagePath = xss(validator.escape(imagePath)).replace(/&#x2F;/g, '/')
 
   if(req.users_decoded.UsersType_ID != 2){
     return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
