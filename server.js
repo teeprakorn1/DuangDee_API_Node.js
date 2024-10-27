@@ -112,7 +112,7 @@ app.post('/api/VerifyToken',VerifyTokens, function(req, res){
       status: true
     });
   }else{
-    res.status(404).send({
+    res.send({
       status: false
     });
   }
@@ -130,8 +130,6 @@ app.post('/api/check-email', async (req, res) => {
   if (!validator.isEmail(Users_Email)) {
     return res.send({ message: 'รูปแบบ Email ไม่ถูกต้อง', status: false });
   }
-
-  Users_Email = xss(validator.normalizeEmail(Users_Email));
 
   const sql_check_email = "SELECT COUNT(*) AS count FROM users WHERE Users_Email = ?";
   db.query(sql_check_email, [Users_Email], (err, result) => {
@@ -173,10 +171,8 @@ app.post('/api/check-uid' , async (req, res) => {
   let { Users_Google_Uid } = req.body;
 
   if(!Users_Google_Uid || typeof Users_Google_Uid !== 'string'){
-    res.status(404).send({ message: 'กรุณากรอก UID', status: false });
+    res.send({ message: 'กรุณากรอก UID', status: false });
   }
-
-  Users_Google_Uid = xss(validator.escape(Users_Google_Uid));
 
   const sql_check_username = "SELECT COUNT(*) AS count FROM users WHERE Users_Google_Uid = ?";
   db.query(sql_check_username, [Users_Google_Uid], async (err, result) => {
@@ -197,10 +193,9 @@ app.post('/api/register', async (req, res) => {
 
   if (!Users_Email || !Users_Username || !Users_Password ||
     typeof Users_Email !== 'string' || typeof Users_Username !== 'string' || typeof Users_Password !=='string') {
-    return res.status(404).send({ message: 'กรอกข้อมูลพารามิเตอร์ให้ถูกต้องตามที่กำหนด.', status: false });
+    return res.send({ message: 'กรอกข้อมูลพารามิเตอร์ให้ถูกต้องตามที่กำหนด.', status: false });
   }
 
-  Users_Email = xss(validator.normalizeEmail(Users_Email));
   Users_Username = xss(validator.escape(Users_Username));
   Users_Password = xss(validator.escape(Users_Password));
 
@@ -209,7 +204,7 @@ app.post('/api/register', async (req, res) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
 
     if (result[0].count > 0) {
-      res.status(404).send({ message: "Username หรือ Email มีการลงทะเบียนแล้ว",status: false });
+      res.send({ message: "Username หรือ Email มีการลงทะเบียนแล้ว",status: false });
     }else{
       const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
 
@@ -231,7 +226,7 @@ app.post('/api/login', loginRateLimiter , async (req, res) => {
 
   if (!Users_Username || !Users_Password ||
      typeof Users_Username !== 'string' || typeof Users_Password !== 'string') {
-    return res.status(404).send({ message: 'กรุณากรอกข้อมูลพารามิเตอร์ให้ถูกต้องตามที่กำหนด.', status: false });
+    return res.send({ message: 'กรุณากรอกข้อมูลพารามิเตอร์ให้ถูกต้องตามที่กำหนด.', status: false });
   }
 
   Users_Username = xss(validator.escape(Users_Username));
@@ -261,11 +256,11 @@ app.post('/api/login', loginRateLimiter , async (req, res) => {
             res.send(user);
           });
         } else {
-          res.status(404).send({ message: "รหัสผ่านถูกต้อง",status: false });
+          res.send({ message: "รหัสผ่านถูกต้อง",status: false });
         }
       });
     } else {
-      res.status(404).send({ message: "ไม่พบบัญชีผู้ใช้นี้",status: false });
+      res.send({ message: "ไม่พบบัญชีผู้ใช้นี้",status: false });
     }
   });
 });
@@ -275,8 +270,8 @@ app.post('/api/login', loginRateLimiter , async (req, res) => {
 app.post('/api/request-register' ,sendEmailRateLimiter, async (req, res) => {
   let { Users_Email, Value } = req.body;
   
-  if (!Users_Email || typeof Users_Email !== 'string') {
-    return res.status(404).send({ message:'กรุณากรอก Email',status: false });
+  if (!Users_Email) {
+    return res.send({ message:'กรุณากรอก Email',status: false });
   }
 
   Users_Email = xss(validator.normalizeEmail(Users_Email));
@@ -291,7 +286,7 @@ app.post('/api/request-register' ,sendEmailRateLimiter, async (req, res) => {
       await sendOTPEmail(Users_Email, currentOTP, 1);
       res.send({ message:'ส่ง OTP สำเร็จ ไปยัง ' + Users_Email,status: true });
     } catch (error) {
-      res.status(404).send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
+      res.send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
     }
   }else if(Value == 1){
     delete otpStorage_Register[Users_Email];
@@ -303,10 +298,10 @@ app.post('/api/request-register' ,sendEmailRateLimiter, async (req, res) => {
       await sendOTPEmail(Users_Email, currentOTP, 1);
       res.send({ message:'ส่ง OTP สำเร็จ ไปยัง ' + Users_Email,status: true });
     } catch (error) {
-      res.status(404).send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
+      res.send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
     }
   }else{
-    res.status(404).send({ message:'ไม่พบ Value',status: false });
+    res.send({ message:'ไม่พบ Value',status: false });
   }
 });
 
@@ -314,11 +309,10 @@ app.post('/api/request-register' ,sendEmailRateLimiter, async (req, res) => {
 app.post('/api/request-password' ,sendEmailRateLimiter, async (req, res) => {
   let { Users_Email, Value } = req.body;
   
-  if (!Users_Email || !Value || typeof Users_Email !== 'string' || typeof Value !== 'string') {
-    return res.status(404).send({ message:'กรุณากรอก Email',status: false });
+  if (!Users_Email || !Value || typeof Value !== 'string') {
+    return res.send({ message:'กรุณากรอก Email',status: false });
   }
 
-  Users_Email = xss(validator.normalizeEmail(Users_Email));
   Value = xss(validator.escape(Value));
 
   const sql_check_email = "SELECT COUNT(*) AS count FROM users WHERE Users_Email = ? AND RegisType_ID NOT IN (2)";
@@ -337,7 +331,7 @@ app.post('/api/request-password' ,sendEmailRateLimiter, async (req, res) => {
           await sendOTPEmail(Users_Email, currentOTP, 2);
           res.send({ message:'ส่ง OTP สำเร็จ ไปยัง ' + Users_Email,status: true });
         } catch (error) {
-          res.status(404).send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
+          res.send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
         }
       }else if(Value == 1){
         delete otpStorage_Resets[Users_Email];
@@ -349,13 +343,13 @@ app.post('/api/request-password' ,sendEmailRateLimiter, async (req, res) => {
           await sendOTPEmail(Users_Email, currentOTP, 2);
           res.send({ message:'ส่ง OTP สำเร็จ ไปยัง ' + Users_Email,status: true });
         } catch (error) {
-          res.status(404).send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
+          res.send({ message:'ส่ง OTP ไม่สำเร็จ',status: false });
         }
       }else{
-        res.status(404).send({ message:'ไม่พบ Value',status: false });
+        res.send({ message:'ไม่พบ Value',status: false });
       }
     }else{
-      res.status(404).send({ message:'Email ยังไม่มีการลงทะเบียน หรือ ไม่ถูกต้อง',status: false });
+      res.send({ message:'Email ยังไม่มีการลงทะเบียน หรือ ไม่ถูกต้อง',status: false });
     }
   });
 });
@@ -367,43 +361,42 @@ app.post('/api/verify-otp', (req, res) => {
 
   if (!Users_Email || !OTP || !Value || 
     typeof Users_Email !== 'string' || typeof OTP !== 'string' || typeof Value !== 'string'){
-    return res.status(404).send({ message: 'กรุณากรอก Email, OTP และ Value', status: false });
+    return res.send({ message: 'กรุณากรอก Email, OTP และ Value', status: false });
   }
 
-  Users_Email = xss(validator.normalizeEmail(Users_Email));
   OTP = xss(validator.escape(OTP));
   Value = xss(validator.escape(Value));
 
   if(Value == 0){
     OTP_Check = OTP_Timelimiter(otpStorage_Register,Users_Email);
     if(!OTP_Check){
-      return res.status(404).send({ message:'ไม่พบ OTP สำหรับ Email นี้',status: false });
+      return res.send({ message:'ไม่พบ OTP สำหรับ Email นี้',status: false });
     }
     if (OTP_Check == -1) {
       delete otpStorage_Register[Users_Email];
-      return res.status(404).send({ message:'OTP หมดอายุ',status: false });
+      return res.send({ message:'OTP หมดอายุ',status: false });
     }
     if (OTP_Check == OTP) {
       delete otpStorage_Register[Users_Email];
       res.send({ message:'ยืนยัน OTP สำเร็จ',status: true });
     } else {
-      res.status(404).send({ message:'OTP หมดอายุ',status: false });
+      res.send({ message:'OTP หมดอายุ',status: false });
     }
 
   }else if(Value == 1){
     OTP_Check = OTP_Timelimiter(otpStorage_Resets,Users_Email);
     if(!OTP_Check){
-      return res.status(404).send({ message:'ไม่พบ OTP สำหรับ Email นี้',status: false });
+      return res.send({ message:'ไม่พบ OTP สำหรับ Email นี้',status: false });
     }
     if (OTP_Check == -1) {
       delete otpStorage_Resets[Users_Email];
-      return res.status(404).send({ message:'OTP หมดอายุ',status: false });
+      return res.send({ message:'OTP หมดอายุ',status: false });
     }
     if (OTP_Check == OTP) {
       delete otpStorage_Resets[Users_Email];
       res.send({ message:'ยืนยัน OTP สำเร็จ',status: true });
     } else {
-      res.status(404).send({ message:'OTP ไม่ถูกต้อง',status: false });
+      res.send({ message:'OTP ไม่ถูกต้อง',status: false });
     }
   }
 });
@@ -414,7 +407,7 @@ app.post('/api/reset-password', async (req, res) => {
 
   if (!Users_Email || !Users_Password ||
     typeof Users_Email !== 'string' || typeof Users_Password !== 'string') {
-    return res.status(404).send({ message: 'จำเป็นต้องมี Email และ Password', status: false });
+    return res.send({ message: 'จำเป็นต้องมี Email และ Password', status: false });
   }
 
   Users_Email = xss(validator.normalizeEmail(Users_Email));
@@ -424,7 +417,7 @@ app.post('/api/reset-password', async (req, res) => {
 
   const sql = "UPDATE users SET Users_Password = ? WHERE Users_Email = ?";
   db.query(sql, [NewPassword,Users_Email], async (err) => {
-    if (err) { return res.status(404).status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
       await sendOTPEmail(Users_Email, null , 0);
       res.send({ message:'รีเซ็ต Password สำเร็จ',status: true });
   });
@@ -436,15 +429,14 @@ app.post('/api/check-uid-firebase', async (req, res) => {
   let { Users_Google_Uid } = req.body;
 
   if (!Users_Google_Uid || typeof Users_Google_Uid !== 'string') {
-    return res.status(404).send({ message: 'จำเป็นต้องมี UID', status: false });
+    return res.send({ message: 'จำเป็นต้องมี UID', status: false });
   }
 
-  Users_Google_Uid = xss(validator.escape(Users_Google_Uid));
 
   const Uid_Storage = await GoogleIdentity(Users_Google_Uid);
 
   if (!Uid_Storage) {
-    return res.status(404).send({ message: 'UID ไม่ถูกต้องหรือไม่พบผู้ใช้', status: false });
+    return res.send({ message: 'UID ไม่ถูกต้องหรือไม่พบผู้ใช้', status: false });
   }
 
   if (Uid_Storage) {
@@ -464,26 +456,25 @@ app.post('/api/register-uid', async (req, res) => {
 
   if (!Users_Google_Uid || !Users_DisplayName || !Users_Email ||
     typeof Users_Google_Uid !== 'string' || typeof Users_DisplayName !== 'string' || typeof Users_Email !== 'string') {
-    return res.status(404).send({ message: 'จำเป็นต้องมี UID และ DisplayName', status: false });
+    return res.send({ message: 'จำเป็นต้องมี UID และ DisplayName', status: false });
   }
 
   Users_Google_Uid = xss(validator.escape(Users_Google_Uid));
   Users_DisplayName = xss(validator.escape(Users_DisplayName));
-  Users_Email = xss(validator.normalizeEmail(Users_Email));
 
   const sql_check_uid = "SELECT COUNT(*) AS count FROM users WHERE Users_Google_Uid = ?";
   db.query(sql_check_uid, [Users_Google_Uid], async (err, result) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
 
     if (result[0].count > 0) {
-      res.status(404).send({ message: "UID มีอยู่แล้ว",status: false });
+      res.send({ message: "UID มีอยู่แล้ว",status: false });
     }else{
       const sql_check_email = "SELECT COUNT(*) AS count FROM users WHERE Users_Email = ?";
       db.query(sql_check_email, [Users_Email], async (err, result) => {
         if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
   
         if (result[0].count > 0) {
-          res.status(404).send({ message: "Email มีอยู่แล้ว",status: false });
+          res.send({ message: "Email มีอยู่แล้ว",status: false });
         }else{
           const sql = "INSERT INTO users (Users_Email,Users_Google_Uid,Users_DisplayName,RegisType_ID)VALUES(?,?,?,2)";
           db.query(sql, [Users_Email, Users_Google_Uid, Users_DisplayName], (err) => {
@@ -502,7 +493,7 @@ app.post('/api/login-uid',async (req, res) => {
   let { Users_Google_Uid } = req.body
 
   if(!Users_Google_Uid || typeof Users_Google_Uid !== 'string'){
-    res.status(404).send({ message: 'จำเป็นต้องมี UID', status: false });
+    res.send({ message: 'จำเป็นต้องมี UID', status: false });
   }
 
   Users_Google_Uid = xss(validator.escape(Users_Google_Uid));
@@ -515,7 +506,7 @@ app.post('/api/login-uid',async (req, res) => {
       const Uid_Storage = await GoogleIdentity(Users_Google_Uid);
 
       if (!Uid_Storage) {
-        return res.status(404).send({ message: 'UID ไม่ถูกต้องหรือไม่พบผู้ใช้', status: false });
+        return res.send({ message: 'UID ไม่ถูกต้องหรือไม่พบผู้ใช้', status: false });
       }
 
       if (Uid_Storage) {
@@ -524,7 +515,7 @@ app.post('/api/login-uid',async (req, res) => {
           if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
 
           if (result.length === 0) {
-            return res.status(404).send({ message: 'ไม่พบผู้ใช้', status: false });
+            return res.send({ message: 'ไม่พบผู้ใช้', status: false });
           }else{
             const user = result[0];
             const Tokens = GenerateTokens(user.Users_ID, Uid_Storage.uid, Uid_Storage.email, user.UsersType_ID, 2);
@@ -538,7 +529,7 @@ app.post('/api/login-uid',async (req, res) => {
         });
       }
     }else{
-      res.status(404).send({ message: "ไม่พบผู้ใช้",status: false });
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
   });
 });
@@ -549,20 +540,20 @@ app.put('/api/update-profile-image/:id', VerifyTokens, upload.single('Profile_Im
   const { id } = req.params;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if (!req.file) {
-    return res.status(404).send({ message: "ต้องมีภาพประกอบ", status: false });
+    return res.send({ message: "ต้องมีภาพประกอบ", status: false });
   }
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
   if (!allowedTypes.includes(req.file.mimetype)) {
-    return res.status(404).send({ message: 'ประเภทไฟล์ไม่ถูกต้อง', status: false });
+    return res.send({ message: 'ประเภทไฟล์ไม่ถูกต้อง', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM users WHERE Users_ID = ?";
@@ -585,14 +576,14 @@ app.put('/api/update-profile-image/:id', VerifyTokens, upload.single('Profile_Im
           if(result.affectedRows > 0){
             res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
           }else{
-            res.status(404).send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+            res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
           }
         });
       }catch (error) {
-        return res.status(404).send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
       }
     }else{
-      res.status(404).send({ message: "ไม่พบผู้ใช้",status: false });
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
   });
 });
@@ -603,18 +594,18 @@ app.delete('/api/delete-profile-image/:id', VerifyTokens, async (req, res) => {
   let { imagePath } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if (!imagePath || typeof id !== 'string') {
-      return res.status(404).send({ message: "ต้องมี imagePath", status: false });
+      return res.send({ message: "ต้องมี imagePath", status: false });
   }
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
-  imagePath = xss(validator.escape(imagePath));
+  imagePath = xss(validator.escape(imagePath)).replace(/&#x2F;/g, '/')
 
   const sql = "SELECT Users_ImageFile FROM users WHERE Users_ID = ?";
   db.query(sql, [id], async (err, result) => {
@@ -622,8 +613,12 @@ app.delete('/api/delete-profile-image/:id', VerifyTokens, async (req, res) => {
     if(result.length > 0){
       const Users_ImageFile = result[0].Users_ImageFile;
 
-      if (!Users_ImageFile || Users_ImageFile !== imagePath) {
-        return res.status(404).send({ message: "ไม่พบรูปภาพหรือไม่ตรงกับเส้นทางที่ระบุ", status: false });
+      if(Users_ImageFile == null){
+        return res.send({ message: "ไม่พบรูปภาพ", status: false });
+      }
+
+      if(Users_ImageFile == imagePath){
+        return res.send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
       }
 
       const sanitizedPath = imagePath.replace(/^\/+/, '');
@@ -631,17 +626,17 @@ app.delete('/api/delete-profile-image/:id', VerifyTokens, async (req, res) => {
   
     fs.access(fullPath, fs.constants.F_OK, (err) => {
       if (err) {
-        return res.status(404).send({ message: "ไม่พบไฟล์", status: false });
+        return res.send({ message: "ไม่พบไฟล์", status: false });
       }
       fs.unlink(fullPath, (err) => {
         if (err) {
-            return res.status(404).send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
+            return res.send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
         }
         res.send({ message: "ลบรูปภาพสำเร็จ", status: true });
       });
     });
     }else{
-      return res.status(404).send({ message: "ไม่พบผู้ใช้", status: false });
+      return res.send({ message: "ไม่พบผู้ใช้", status: false });
     }
   });
 });
@@ -653,7 +648,7 @@ app.put('/api/update-profile/:id' , VerifyTokens  ,async (req, res) => {
     Users_Phone, Users_BirthDate, UsersGender_ID, } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if(!Users_DisplayName || !Users_FirstName || 
@@ -661,11 +656,11 @@ app.put('/api/update-profile/:id' , VerifyTokens  ,async (req, res) => {
     typeof Users_DisplayName !== 'string' || typeof Users_FirstName !== 'string' ||
     typeof Users_LastName !== 'string' || typeof Users_Phone !== 'string' ||
     typeof Users_BirthDate !== 'string' || typeof UsersGender_ID !== 'string'){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   Users_DisplayName = xss(validator.escape(Users_DisplayName));
@@ -689,11 +684,11 @@ app.put('/api/update-profile/:id' , VerifyTokens  ,async (req, res) => {
         if(result.affectedRows > 0){
           res.send({ message: "อัพเดทข้อมูลสำเร็จ",status: true });
         }else{
-          res.status(404).send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+          res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
         }
       });
     }else{
-      res.status(404).send({ message: "ไม่พบผู้ใช้",status: false });
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
   });
 });
@@ -701,10 +696,10 @@ app.put('/api/update-profile/:id' , VerifyTokens  ,async (req, res) => {
 //API Get Profile By ID
 app.get('/api/get-profile/:id', VerifyTokens, async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT u.*,g.UsersGender_Name,ut.UsersType_Name,rt.RegisType_Name FROM"+
@@ -719,7 +714,7 @@ app.get('/api/get-profile/:id', VerifyTokens, async (req, res) => {
       UsersData['status'] = true
       res.send(UsersData);
     }else{
-      res.status(404).send({ message: "ไม่พบผู้ใช้",status: false });
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
   });
 });
@@ -734,7 +729,7 @@ app.get('/api/get-zodiac', VerifyTokens ,async (req, res) => {
       const ZodiacData = results
       res.send(ZodiacData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   });
 });
@@ -742,7 +737,7 @@ app.get('/api/get-zodiac', VerifyTokens ,async (req, res) => {
 //API Get Zodiac By ID
 app.get('/api/get-zodiac/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
   const sql = "SELECT * FROM zodiac WHERE Zodiac_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
@@ -752,7 +747,7 @@ app.get('/api/get-zodiac/:id', VerifyTokens ,async (req, res) => {
       ZodiacData['status'] = true
       res.send(ZodiacData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -762,7 +757,7 @@ app.post('/api/check-zodiac', VerifyTokens, async (req, res) => {
   let { Users_BirthDate } = req.body;
 
   if (!Users_BirthDate || typeof Users_BirthDate !== 'string') {
-    return res.status(404).send({ message: "ต้องมีข้อมูลของวันเกิด", status: false });
+    return res.send({ message: "ต้องมีข้อมูลของวันเกิด", status: false });
   }
 
   Users_BirthDate = xss(validator.escape(Users_BirthDate));
@@ -773,7 +768,7 @@ app.post('/api/check-zodiac', VerifyTokens, async (req, res) => {
   birthDate.setHours(birthDate.getHours() + 8);
 
   if (isNaN(birthDate)) {
-    return res.status(404).send({ message: "รูปแบบวันเกิดไม่ถูกต้อง", status: false });
+    return res.send({ message: "รูปแบบวันเกิดไม่ถูกต้อง", status: false });
   }
 
   const birthDay = birthDate.getUTCDate();
@@ -815,7 +810,7 @@ app.get('/api/get-count-card', VerifyTokens , async (req, res) => {
 //API Get Card By ID
 app.get('/api/get-card/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
   const sql = "SELECT * FROM card WHERE Card_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
@@ -825,7 +820,7 @@ app.get('/api/get-card/:id', VerifyTokens ,async (req, res) => {
       CardData['status'] = true
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -837,11 +832,11 @@ app.post('/api/add-playcard', VerifyTokens , async (req, res) => {
 
   if(!Users_ID || !Card_ID ||
     typeof Users_ID !== 'string' || typeof Card_ID !== 'string'){
-    res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   if(req.users_decoded.Users_ID != Users_ID){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   Users_ID = xss(validator.escape(Users_ID));
@@ -853,7 +848,7 @@ app.post('/api/add-playcard', VerifyTokens , async (req, res) => {
     if(result.affectedRows > 0){
       res.send({ message: "จัดการข้อมูลสำเร็จ",status: true });
     }else{
-      res.status(404).send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
+      res.send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
     }
   });
 });
@@ -861,7 +856,7 @@ app.post('/api/add-playcard', VerifyTokens , async (req, res) => {
 //API Get PlayCard By ID
 app.get('/api/get-playcard/:id', VerifyTokens, async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
   const sql = "SELECT * FROM playcard WHERE PlayCard_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
@@ -871,7 +866,7 @@ app.get('/api/get-playcard/:id', VerifyTokens, async (req, res) => {
       CardData['status'] = true
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -880,7 +875,7 @@ app.get('/api/get-playcard/:id', VerifyTokens, async (req, res) => {
 //API Get HandDetail By ID
 app.get('/api/get-handdetail/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
   const sql = "SELECT * FROM handdetail WHERE HandDetail_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
@@ -890,7 +885,7 @@ app.get('/api/get-handdetail/:id', VerifyTokens ,async (req, res) => {
       CardData['status'] = true
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -937,7 +932,7 @@ app.post('/api/add-playhand', VerifyTokens, async (req, res) => {
 //API Get SummaryDetail By ID
 app.get('/api/get-summarydetail/:id' , VerifyTokens , async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
   const sql = "SELECT * FROM summarydetail WHERE SummaryDetail_ID = ?";
   db.query(sql, [id], (err, results) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
@@ -947,7 +942,7 @@ app.get('/api/get-summarydetail/:id' , VerifyTokens , async (req, res) => {
       CardData['status'] = true
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -955,17 +950,17 @@ app.get('/api/get-summarydetail/:id' , VerifyTokens , async (req, res) => {
 //////////////////////////////////Summary API///////////////////////////////////////
 //API Add Summary
 app.post('/api/add-summary' , VerifyTokens , async (req, res) => {
-  let {Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID } = req.body;
+  let {Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID, SummaryDetail_ID } = req.body;
 
-  if(!Summary_TotalScore || !Users_ID || !Zodiac_ID || !PlayCard_ID || !PlayHand_ID ||
+  if(!Summary_TotalScore || !Users_ID || !Zodiac_ID || !PlayCard_ID || !PlayHand_ID || !SummaryDetail_ID ||
     typeof Summary_TotalScore !== 'string' || typeof Users_ID !== 'string' ||
     typeof Zodiac_ID !== 'string' || typeof PlayCard_ID !== 'string' ||
-    typeof PlayHand_ID !== 'string'){
-    res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    typeof PlayHand_ID !== 'string' || typeof SummaryDetail_ID !== 'string'){
+    res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   if(req.users_decoded.Users_ID != Users_ID){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   Summary_TotalScore = xss(validator.escape(Summary_TotalScore));
@@ -974,13 +969,141 @@ app.post('/api/add-summary' , VerifyTokens , async (req, res) => {
   PlayCard_ID = xss(validator.escape(PlayCard_ID));
   PlayHand_ID = xss(validator.escape(PlayHand_ID));
 
-  const sql = "INSERT INTO summary( Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID )VALUES(?,?,?,?,?)";
-  db.query(sql,[Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID], (err,result) => {
+  const sql = "INSERT INTO summary( Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID,SummaryDetail_ID)VALUES(?,?,?,?,?,?)";
+  db.query(sql,[Summary_TotalScore, Users_ID, Zodiac_ID, PlayCard_ID, PlayHand_ID, SummaryDetail_ID], (err,result) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
     if(result.affectedRows > 0){
       res.send({ message: "จัดการข้อมูลสำเร็จ",status: true });
     }else{
-      res.status(404).send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
+      res.send({ message: "จัดการข้อมูลไม่สำเร็จ",status: false });
+    }
+  });
+});
+//API Get Summary By ID
+app.get('/api/get-summary/:id', VerifyTokens ,async (req, res) => {
+  const { id } = req.params;
+  if(!id || typeof id !== 'string'){ re.send({ message: "ต้องมี ID", status: false });}
+
+  if(req.users_decoded.Users_ID != id){
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+
+  const sql = "SELECT s.Summary_TotalScore,z.Zodiac_Score,c.Card_WorkScore,c.Card_FinanceScore"+
+    ",c.Card_LoveScore,ph.PlayHand_Score ,sd.SummaryDetail_Detail FROM (((((summary s "+
+    "INNER JOIN zodiac z ON s.Zodiac_ID = z.Zodiac_ID)"+
+    "INNER JOIN playhand ph ON s.PlayHand_ID = ph.PlayHand_ID)"+
+    "INNER JOIN playcard pc ON s.PlayCard_ID = pc.PlayCard_ID) "+
+    "INNER JOIN card c ON c.Card_ID = pc.Card_ID)"+
+    "INNER JOIN summarydetail sd ON s.SummaryDetail_ID = sd.SummaryDetail_ID)"+
+    "WHERE s.Users_ID = ? ORDER BY Summary_RegisDate DESC LIMIT 1"
+  db.query(sql, [id], (err, results) => {
+    // if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+    if (err) { return res.status(500).send({ message: sql, status: false });}
+    if(results.length > 0){
+      const PlaySummaryData = results[0];
+      PlaySummaryData['message'] = "ทำรายการสำเร็จ"
+      PlaySummaryData['status'] = true
+      res.send(PlaySummaryData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//API Get Summary By Top 1 RegisDate time
+app.get('/api/get-summary-top1/:id', VerifyTokens ,async (req, res) => {
+  const { id } = req.params;
+  if(!id || typeof id !== 'string'){ re.send({ message: "ต้องมี ID", status: false });}
+
+  if(req.users_decoded.Users_ID != id){
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+
+  const sql = "SELECT * FROM summary WHERE Users_ID = ? ORDER BY Summary_RegisDate DESC LIMIT 1";
+  db.query(sql, [id], (err, results) => {
+    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+    if(results.length > 0){
+      const PlayCardData = results[0];
+      PlayCardData['message'] = "ทำรายการสำเร็จ"
+      PlayCardData['status'] = true
+      res.send(PlayCardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//1
+//API Get Summary By Top 1 of inDay time
+app.get('/api/get-summary-inday-top1/:id', VerifyTokens ,async (req, res) => {
+  const { id } = req.params;
+  if(!id || typeof id !== 'string'){ re.send({ message: "ต้องมี ID", status: false });}
+
+  if(req.users_decoded.Users_ID != id){
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+
+  const sql = "SELECT * FROM summary WHERE DATE(Summary_RegisDate) = CURDATE() AND Users_ID = ?"+
+    "ORDER BY Summary_RegisDate DESC LIMIT 1";
+  db.query(sql, [id], (err, results) => {
+    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+    if(results.length > 0){
+      const PlayCardData = results[0];
+      PlayCardData['message'] = "ทำรายการสำเร็จ"
+      PlayCardData['status'] = true
+      res.send(PlayCardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//2
+//API Get PlayHand By Top 1 of inweek time
+app.get('/api/get-playhand-inweek-top1/:id', VerifyTokens ,async (req, res) => {
+  const { id } = req.params;
+  if(!id || typeof id !== 'string'){ re.send({ message: "ต้องมี ID", status: false });}
+
+  if(req.users_decoded.Users_ID != id){
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+
+  const sql = "SELECT * FROM playhand WHERE YEARWEEK(PlayHand_RegisDate, 1) = YEARWEEK(CURDATE(), 1)"+
+    "AND Users_ID = ? ORDER BY PlayHand_RegisDate DESC LIMIT 1"
+  db.query(sql, [id], (err, results) => {
+    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+    if(results.length > 0){
+      const PlayCardData = results[0];
+      PlayCardData['message'] = "ทำรายการสำเร็จ"
+      PlayCardData['status'] = true
+      res.send(PlayCardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
+    }
+  });
+});
+
+//3
+//API Get PlayCard By Top 1 of inDay time
+app.get('/api/get-playcard-inday-top1/:id', VerifyTokens ,async (req, res) => {
+  const { id } = req.params;
+  if(!id || typeof id !== 'string'){ re.send({ message: "ต้องมี ID", status: false });}
+
+  if(req.users_decoded.Users_ID != id){
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+
+  const sql = "SELECT * FROM playcard WHERE DATE(PlayCard_RegisDate) = CURDATE() "+
+    "AND Users_ID = ? ORDER BY PlayCard_RegisDate DESC LIMIT 1;";
+  db.query(sql, [id], (err, results) => {
+    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+    if(results.length > 0){
+      const PlayCardData = results[0];
+      PlayCardData['message'] = "ทำรายการสำเร็จ"
+      PlayCardData['status'] = true
+      res.send(PlayCardData);
+    }else{
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -989,10 +1112,10 @@ app.post('/api/add-summary' , VerifyTokens , async (req, res) => {
 //API Get PlayHand By Top 7 RegisDate time
 app.get('/api/get-playhand-top7/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT * FROM playhand WHERE Users_ID = ? ORDER BY PlayHand_RegisDate DESC LIMIT 7";
@@ -1002,7 +1125,7 @@ app.get('/api/get-playhand-top7/:id', VerifyTokens ,async (req, res) => {
       const playHandData = results
       res.send(playHandData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   });
 });
@@ -1010,10 +1133,10 @@ app.get('/api/get-playhand-top7/:id', VerifyTokens ,async (req, res) => {
 //API Get PlayCard By Top 7 RegisDate time
 app.get('/api/get-playcard-top7/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT * FROM playcard WHERE Users_ID = ? ORDER BY PlayCard_RegisDate DESC LIMIT 7";
@@ -1023,7 +1146,7 @@ app.get('/api/get-playcard-top7/:id', VerifyTokens ,async (req, res) => {
       const PlayCardData = results
       res.send(PlayCardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   });
 });
@@ -1031,10 +1154,10 @@ app.get('/api/get-playcard-top7/:id', VerifyTokens ,async (req, res) => {
 //API Get PlayHand By Top 1 RegisDate time
 app.get('/api/get-playhand-top1/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ res.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ res.send({ message: "ต้องมี ID", status: false });}
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT * FROM playhand WHERE Users_ID = ? ORDER BY PlayHand_RegisDate DESC LIMIT 1";
@@ -1046,7 +1169,7 @@ app.get('/api/get-playhand-top1/:id', VerifyTokens ,async (req, res) => {
       PlayHandData['status'] = true
       res.send(PlayHandData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1054,10 +1177,10 @@ app.get('/api/get-playhand-top1/:id', VerifyTokens ,async (req, res) => {
 //API Get PlayCard By Top 1 RegisDate time
 app.get('/api/get-playcard-top1/:id', VerifyTokens ,async (req, res) => {
   const { id } = req.params;
-  if(!id || typeof id !== 'string'){ re.status(404).send({ message: "ต้องมี ID", status: false });}
+  if(!id || typeof id !== 'string'){ re.send({ message: "ต้องมี ID", status: false });}
 
   if(req.users_decoded.Users_ID != id){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT * FROM playcard WHERE Users_ID = ? ORDER BY PlayCard_RegisDate DESC LIMIT 1";
@@ -1069,18 +1192,17 @@ app.get('/api/get-playcard-top1/:id', VerifyTokens ,async (req, res) => {
       PlayCardData['status'] = true
       res.send(PlayCardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
-
 
 
 //////////////////////////////////Dashboard Of Web React///////////////////////////////////////
 //API Get count of Users
 app.get('/api/get-count-users', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
   const sql = "SELECT COUNT(*) AS Count FROM users";
   db.query(sql, (err, results) => {
@@ -1095,7 +1217,7 @@ app.get('/api/get-count-users', VerifyTokens ,async (req, res) => {
 //API Get count of Users Online
 app.get('/api/get-count-users-online', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
   const sql = "SELECT COUNT(*) AS Count FROM users WHERE Users_IsActive = 1";
   db.query(sql, (err, results) => {
@@ -1110,7 +1232,7 @@ app.get('/api/get-count-users-online', VerifyTokens ,async (req, res) => {
 //API Get count of Users Offline
 app.get('/api/get-count-users-offline', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT COUNT(*) AS Count FROM users WHERE Users_IsActive = 0";
@@ -1126,7 +1248,7 @@ app.get('/api/get-count-users-offline', VerifyTokens ,async (req, res) => {
 //API Get count of playhand
 app.get('/api/count-playhand', VerifyTokens, (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const query = 'SELECT COUNT(PlayHand_ID) AS Count FROM playhand';
@@ -1142,7 +1264,7 @@ app.get('/api/count-playhand', VerifyTokens, (req, res) => {
 //API Get count of playcard
 app.get('/api/count-playcard', VerifyTokens, (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const query = 'SELECT COUNT(PlayCard_ID) AS Count FROM playcard';
@@ -1158,7 +1280,7 @@ app.get('/api/count-playcard', VerifyTokens, (req, res) => {
 //API Get count of Summary
 app.get('/api/count-playsummary', VerifyTokens, (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
   
   const query = 'SELECT COUNT(Summary_ID) AS Count FROM summary';
@@ -1176,14 +1298,14 @@ app.post('/api/count-playcard-date', VerifyTokens,(req, res) => {
   let {Month , Years } = req.body;
 
   if(!Month || !Years || typeof Month !== 'string' || typeof Years !== 'string'){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   Month = xss(validator.escape(Month));
   Years = xss(validator.escape(Years));
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const query = 'SELECT COUNT(*) AS Count FROM playcard WHERE ' +
@@ -1202,11 +1324,11 @@ app.post('/api/count-playhand-date', VerifyTokens,(req, res) => {
   let {Month , Years } = req.body;
 
   if(!Month || !Years || typeof Month !== 'string' || typeof Years !== 'string'){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   Month = xss(validator.escape(Month));
@@ -1228,11 +1350,11 @@ app.get('/api/count-summary-date', VerifyTokens ,(req, res) => {
   let {Month , Years } = req.body;
 
   if(!Month || !Years || typeof Month !== 'string' || typeof Years !== 'string'){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   Month = xss(validator.escape(Month));
@@ -1255,7 +1377,7 @@ app.post('/api/login-admin', loginRateLimiter, async (req, res) => {
 
   if (!Users_Username || !Users_Password ||
     typeof Users_Username !== 'string' || typeof Users_Password !=='string' ) {
-    return res.status(404).send({ message: 'กรุณากรอก Username และ Password', status: false });
+    return res.send({ message: 'กรุณากรอก Username และ Password', status: false });
   }
 
   Users_Username = xss(validator.escape(Users_Username))
@@ -1287,11 +1409,11 @@ app.post('/api/login-admin', loginRateLimiter, async (req, res) => {
             res.send(user);
           });
         } else {
-          res.status(404).send({ message: "Password ไม่ถูกต้อง",status: false });
+          res.send({ message: "Password ไม่ถูกต้อง",status: false });
         }
       });
     } else {
-      res.status(404).send({ message: "ไม่พบบัญชีผู้ใช้นี้",status: false });
+      res.send({ message: "ไม่พบบัญชีผู้ใช้นี้",status: false });
     }
   });
 });
@@ -1302,11 +1424,11 @@ app.post('/api/admin-add' ,VerifyTokens , async (req, res) => {
 
   if (!Users_Email || !Users_Username || !Users_Password || 
     typeof Users_Username !== "string" || typeof Users_Email !== "string" || typeof Users_Password !== "string") {
-    return res.status(404).send({ message: 'จำเป็นต้องมีข้อมูล', status: false });
+    return res.send({ message: 'จำเป็นต้องมีข้อมูล', status: false });
   }
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   Users_Email = xss(validator.normalizeEmail(Users_Email))
@@ -1319,7 +1441,7 @@ app.post('/api/admin-add' ,VerifyTokens , async (req, res) => {
     if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
 
     if (result[0].count > 0) { 
-      return res.status(404).send({ message: "มีชื่อผู้ใช้นี้อยู่ในระบบอยู่แล้ว", status: false });
+      return res.send({ message: "มีชื่อผู้ใช้นี้อยู่ในระบบอยู่แล้ว", status: false });
   } else {
       const NewPassword = await bcrypt.hash(Users_Password, saltRounds);
       const sql = "INSERT INTO users (Users_Email, Users_Username, Users_DisplayName, Users_Password, UsersType_ID) VALUES (?, ?, ?, ?, 2)";
@@ -1335,7 +1457,7 @@ app.post('/api/admin-add' ,VerifyTokens , async (req, res) => {
 //API Get All Profile web admin
 app.get('/api/get-profile', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT u.*,g.UsersGender_Name,ut.UsersType_Name,rt.RegisType_Name FROM"+
@@ -1348,7 +1470,7 @@ app.get('/api/get-profile', VerifyTokens ,async (req, res) => {
       const profileData = results
       res.send(profileData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   });
 });
@@ -1360,7 +1482,7 @@ app.put('/api/update-profile-web/:id', VerifyTokens ,async (req, res) => {
     Users_Phone, Users_BirthDate, UsersGender_ID, Users_IsActive} = req.body;
  
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if(!Users_DisplayName || !Users_FirstName || !Users_LastName ||
@@ -1369,7 +1491,7 @@ app.put('/api/update-profile-web/:id', VerifyTokens ,async (req, res) => {
     typeof Users_LastName !== "string" || typeof Users_Phone !== "string" ||
     typeof Users_BirthDate !== "string" || typeof UsersGender_ID !== "string" ||
     typeof Users_IsActive !== "string"){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   Users_DisplayName = xss(validator.escape(Users_DisplayName))
@@ -1381,7 +1503,7 @@ app.put('/api/update-profile-web/:id', VerifyTokens ,async (req, res) => {
   Users_IsActive = xss(validator.escape(Users_IsActive))
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
  
   const sql_check_id = "SELECT COUNT(*) AS count FROM Users WHERE Users_ID = ?";
@@ -1399,11 +1521,11 @@ app.put('/api/update-profile-web/:id', VerifyTokens ,async (req, res) => {
         if(result.affectedRows > 0){
           res.send({ message: "อัพเดทข้อมูลสำเร็จ",status: true });
         }else{
-          res.status(404).send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+          res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
         }
       });
     }else{
-      res.status(404).send({ message: "ไม่พบผู้ใช้",status: false });
+      res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
   });
 });
@@ -1414,13 +1536,13 @@ app.put('/api/update-zodiac/:id', VerifyTokens ,async (req, res) => {
   let {Zodiac_Name, Zodiac_Detail, Zodiac_WorkTopic, Zodiac_FinanceTopic, Zodiac_LoveTopic, Zodiac_Score } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if(!Zodiac_Name || !Zodiac_Detail || !Zodiac_WorkTopic || !Zodiac_FinanceTopic || !Zodiac_LoveTopic || !Zodiac_Score ||
     typeof Zodiac_Name !== "string" || typeof Zodiac_Detail !== "string" || typeof Zodiac_WorkTopic !== "string" ||
     typeof Zodiac_FinanceTopic !== "string" || typeof Zodiac_LoveTopic !== "string" || typeof Zodiac_Score !== "string"){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   Zodiac_Name = xss(validator.escape(Zodiac_Name))
@@ -1431,7 +1553,7 @@ app.put('/api/update-zodiac/:id', VerifyTokens ,async (req, res) => {
   Zodiac_Score = xss(validator.escape(Zodiac_Score))
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM zodiac WHERE Zodiac_ID = ?";
@@ -1447,11 +1569,11 @@ app.put('/api/update-zodiac/:id', VerifyTokens ,async (req, res) => {
         if(result.affectedRows > 0){
           res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
         }else{
-          res.status(404).send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
+          res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
         }
       });
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1460,10 +1582,10 @@ app.put('/api/update-zodiac/:id', VerifyTokens ,async (req, res) => {
 app.put('/api/update-Zodiac-image/:id' , VerifyTokens, upload.single('Zodiac_Image') ,async (req, res) => {
   const { id } = req.params;
   if(!id || typeof id !== 'string'){ return res.send({ message: "ต้องมี ID", status: false });}
-  if (!req.file) { return res.status(404).send({ message: "ต้องมีภาพประกอบ", status: false });}
+  if (!req.file) { return res.send({ message: "ต้องมีภาพประกอบ", status: false });}
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
   
   const sql_check_id = "SELECT COUNT(*) AS count FROM zodiac WHERE Zodiac_ID = ?";
@@ -1486,14 +1608,14 @@ app.put('/api/update-Zodiac-image/:id' , VerifyTokens, upload.single('Zodiac_Ima
           if(result.affectedRows > 0){
             res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
           }else{
-            res.status(404).send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+            res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
           }
         });
       }catch (error) {
-        return res.status(404).send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
       }
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1504,17 +1626,17 @@ app.delete('/api/delete-zodiac-image/:id', VerifyTokens, async (req, res) => {
   let { imagePath } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if (!imagePath || typeof imagePath !== "string") {
-      return res.status(404).send({ message: "ต้องมี imagePath", status: false });
+      return res.send({ message: "ต้องมี imagePath", status: false });
   }
 
   imagePath = xss(validator.escape(imagePath)).replace(/&#x2F;/g, '/')
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT Zodiac_ImageFile FROM zodiac WHERE Zodiac_ID = ?";
@@ -1524,11 +1646,11 @@ app.delete('/api/delete-zodiac-image/:id', VerifyTokens, async (req, res) => {
       const Zodiac_ImageFile = result[0].Zodiac_ImageFile;
 
       if(Zodiac_ImageFile == null){
-        return res.status(404).send({ message: "ไม่พบรูปภาพ", status: false });
+        return res.send({ message: "ไม่พบรูปภาพ", status: false });
       }
 
       if(Zodiac_ImageFile == imagePath){
-        return res.status(404).send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
+        return res.send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
       }
 
       const sanitizedPath = imagePath.replace(/^\/+/, '');
@@ -1536,17 +1658,17 @@ app.delete('/api/delete-zodiac-image/:id', VerifyTokens, async (req, res) => {
   
     fs.access(fullPath, fs.constants.F_OK, (err) => {
       if (err) {
-        return res.status(404).send({ message: "ไม่พบไฟล์", status: false });
+        return res.send({ message: "ไม่พบไฟล์", status: false });
       }
       fs.unlink(fullPath, (err) => {
         if (err) {
-            return res.status(404).send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
+            return res.send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
         }
         res.send({ message: "ลบรูปภาพสำเร็จ", status: true });
       });
     });
     }else{
-      return res.status(404).send({ message: "ไม่พบข้อมูล", status: false });
+      return res.send({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
@@ -1558,7 +1680,7 @@ app.put('/api/update-card/:id' , VerifyTokens ,async (req, res) => {
     Card_WorkScore, Card_FinanceScore, Card_LoveScore } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if(!Card_Name || !Card_WorkTopic || !Card_FinanceTopic || !Card_LoveTopic ||
@@ -1567,7 +1689,7 @@ app.put('/api/update-card/:id' , VerifyTokens ,async (req, res) => {
     typeof Card_FinanceTopic !== "string" || typeof Card_LoveTopic !== "string" ||
     typeof Card_WorkScore !== "string" || typeof Card_FinanceScore !== "string" ||
     typeof Card_LoveScore !== "string"){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   Card_Name = xss(validator.escape(Card_Name));
@@ -1579,7 +1701,7 @@ app.put('/api/update-card/:id' , VerifyTokens ,async (req, res) => {
   Card_LoveScore = xss(validator.escape(Card_LoveScore));
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM card WHERE Card_ID = ?";
@@ -1595,11 +1717,11 @@ app.put('/api/update-card/:id' , VerifyTokens ,async (req, res) => {
         if(result.affectedRows > 0){
           res.send({ message: "เพิ่มข้อมูลสำเร็จ",status: true });
         }else{
-          res.status(404).send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
+          res.send({ message: "เพิ่มข้อมูลไม่สำเร็จ",status: false });
         }
       });
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1611,7 +1733,7 @@ app.put('/api/update-card-image/:id', VerifyTokens, upload.single('Card_Image') 
   if (!req.file) { return res.send({ message: "ต้องมีภาพประกอบ", status: false });}
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM card WHERE Card_ID = ?";
@@ -1634,14 +1756,14 @@ app.put('/api/update-card-image/:id', VerifyTokens, upload.single('Card_Image') 
           if(result.affectedRows > 0){
             res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
           }else{
-            res.status(404).send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+            res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
           }
         });
       }catch (error) {
-        return res.status(404).send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
       }
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1652,17 +1774,17 @@ app.delete('/api/delete-card-image/:id', VerifyTokens , async (req, res) => {
   let { imagePath } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if (!imagePath || typeof imagePath !== "string") {
-      return res.status(404).send({ message: "ต้องมี imagePath", status: false });
+      return res.send({ message: "ต้องมี imagePath", status: false });
   }
 
-  imagePath = xss(validator.escape(imagePath));
+  imagePath = xss(validator.escape(imagePath)).replace(/&#x2F;/g, '/')
   
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT Card_ImageFile FROM card WHERE Card_ID = ?";
@@ -1672,11 +1794,11 @@ app.delete('/api/delete-card-image/:id', VerifyTokens , async (req, res) => {
       const Card_ImageFile = result[0].Card_ImageFile;
 
       if(Card_ImageFile == null){
-        return res.status(404).send({ message: "ไม่พบรูปภาพ", status: false });
+        return res.send({ message: "ไม่พบรูปภาพ", status: false });
       }
 
       if(Card_ImageFile == imagePath){
-        return res.status(404).send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
+        return res.send({ message: "ไม่สามารถลบรูปภาพได้", status: false });
       }
 
       const sanitizedPath = imagePath.replace(/^\/+/, '');
@@ -1684,17 +1806,17 @@ app.delete('/api/delete-card-image/:id', VerifyTokens , async (req, res) => {
   
     fs.access(fullPath, fs.constants.F_OK, (err) => {
       if (err) {
-        return res.status(404).send({ message: "ไม่พบไฟล์", status: false });
+        return res.send({ message: "ไม่พบไฟล์", status: false });
       }
       fs.unlink(fullPath, (err) => {
         if (err) {
-            return res.status(404).send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
+            return res.send({ message: "ไม่สามารถลบไฟล์ได้", status: false });
         }
         res.send({ message: "ลบรูปภาพสำเร็จ", status: true });
       });
     });
     }else{
-      return res.status(404).send({ message: "ไม่พบข้อมูล", status: false });
+      return res.send({ message: "ไม่พบข้อมูล", status: false });
     }
   });
 });
@@ -1702,7 +1824,7 @@ app.delete('/api/delete-card-image/:id', VerifyTokens , async (req, res) => {
 //API Get Card
 app.get('/api/get-card', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT * FROM card";
@@ -1712,7 +1834,7 @@ app.get('/api/get-card', VerifyTokens ,async (req, res) => {
       const CardData = results
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   
   });
@@ -1721,7 +1843,7 @@ app.get('/api/get-card', VerifyTokens ,async (req, res) => {
 //API Get PlayCard
 app.get('/api/get-playcard', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql = "SELECT * FROM playcard";
@@ -1731,7 +1853,7 @@ app.get('/api/get-playcard', VerifyTokens ,async (req, res) => {
       const CardData = results
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   
   });
@@ -1743,17 +1865,17 @@ app.put('/api/update-handdetail/:id', VerifyTokens ,async (req, res) => {
   let {HandDetail_Name, HandDetail_Detail, HandDetail_MinPercent } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if(!HandDetail_Name || !HandDetail_Detail || !HandDetail_MinPercent ||
     typeof HandDetail_Name !== "string" || typeof HandDetail_Detail !== "string" ||
     typeof HandDetail_MinPercent !== "string"){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM handdetail WHERE HandDetail_ID = ?";
@@ -1768,11 +1890,11 @@ app.put('/api/update-handdetail/:id', VerifyTokens ,async (req, res) => {
         if(result.affectedRows > 0){
           res.send({ message: "แก้ไขข้อมูลสำเร็จ",status: true });
         }else{
-          res.status(404).send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
+          res.send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
         }
       });
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1780,7 +1902,7 @@ app.put('/api/update-handdetail/:id', VerifyTokens ,async (req, res) => {
 //API Get HandDetail
 app.get('/api/get-handdetail', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
   const sql = "SELECT * FROM handdetail";
   db.query(sql, (err, results) => {
@@ -1789,7 +1911,7 @@ app.get('/api/get-handdetail', VerifyTokens ,async (req, res) => {
       const CardData = results
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   });
 });
@@ -1800,13 +1922,13 @@ app.put('/api/update-summarydetail/:id', VerifyTokens , async (req, res) => {
   let {SummaryDetail_Name, SummaryDetail_Detail, SummaryDetail_MinPercent } = req.body;
 
   if(!id || typeof id !== 'string'){
-    return res.status(404).send({ message: "ต้องมี ID", status: false });
+    return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if(!SummaryDetail_Name || !SummaryDetail_Detail || !SummaryDetail_MinPercent ||
     typeof SummaryDetail_Name !== "string" || typeof SummaryDetail_Detail !== "string" ||
     typeof SummaryDetail_MinPercent !== "string"){
-    return res.status(404).send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+    return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
   }
 
   SummaryDetail_Name = xss(validator.escape(SummaryDetail_Name))
@@ -1814,7 +1936,7 @@ app.put('/api/update-summarydetail/:id', VerifyTokens , async (req, res) => {
   SummaryDetail_MinPercent = xss(validator.escape(SummaryDetail_MinPercent))
 
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM summarydetail WHERE SummaryDetail_ID = ?";
@@ -1829,11 +1951,11 @@ app.put('/api/update-summarydetail/:id', VerifyTokens , async (req, res) => {
         if(result.affectedRows > 0){
           res.send({ message: "แก้ไขข้อมูลสำเร็จ",status: true });
         }else{
-          res.status(404).send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
+          res.send({ message: "แก้ไขข้อมูลไม่สำเร็จ",status: false });
         }
       });
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false });
+      res.send({ message: "ไม่พบข้อมูล",status: false });
     }
   });
 });
@@ -1841,7 +1963,7 @@ app.put('/api/update-summarydetail/:id', VerifyTokens , async (req, res) => {
 //API Get SummaryDetail
 app.get('/api/get-summarydetail', VerifyTokens ,async (req, res) => {
   if(req.users_decoded.UsersType_ID != 2){
-    return res.status(404).send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
   const sql = "SELECT * FROM summarydetail";
   db.query(sql, (err, results) => {
@@ -1850,7 +1972,7 @@ app.get('/api/get-summarydetail', VerifyTokens ,async (req, res) => {
       const CardData = results
       res.send(CardData);
     }else{
-      res.status(404).send({ message: "ไม่พบข้อมูล",status: false })
+      res.send({ message: "ไม่พบข้อมูล",status: false })
     }
   
   });
