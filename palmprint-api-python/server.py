@@ -11,7 +11,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route('/api/palmprint-ai', methods=['POST'])
+@app.route('/ai/palmprint-ai', methods=['POST'])
 def upload_file():
     if 'palmprint' not in request.files:
         return jsonify({'message': 'ไม่มีไฟล์รูป', 'status': False})
