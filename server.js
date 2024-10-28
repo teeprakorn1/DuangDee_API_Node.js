@@ -18,6 +18,7 @@ const path = require('path');
 const xss = require('xss');
 const fs = require('fs');
 const app = express()
+app.set('trust proxy', true);
 
 require('dotenv').config();
 
