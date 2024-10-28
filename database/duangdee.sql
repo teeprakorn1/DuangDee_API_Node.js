@@ -265,7 +265,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'admin','$2b$14$ThZLTq1Rbtl2/zxeblBXduBE8tp9CEt2JEiQzz3UKMzdQrIUt.E.S','Duangdee Admin','Duang','Dee','duangdee.app@gmail.com','0922957363','1975-01-01','2024-10-25 01:56:25','/images/profile-images/e900157f-3454-48f4-8645-12ca3ca16878.jpg',NULL,3,1,1,1);
+INSERT INTO `users` VALUES (1,'admin','$2b$14$ThZLTq1Rbtl2/zxeblBXduBE8tp9CEt2JEiQzz3UKMzdQrIUt.E.S','Duangdee Admin','Duang','Dee','duangdee.app@gmail.com','0922957363','1975-01-01','2024-10-25 01:56:25','/images/profile-images/e900157f-3454-48f4-8645-12ca3ca16878.jpg',NULL,3,1,2,1);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -356,4 +356,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-10-25  2:23:20
+-- Dump completed on 2024-10-28 11:01:03
