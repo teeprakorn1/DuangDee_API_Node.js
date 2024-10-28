@@ -93,4 +93,4 @@ def process_image(image_path):
     return round(similarity_percentage_lines, 2)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5009)
+    app.run(debug=True, host='0.0.0.0', port=10002)
