@@ -536,57 +536,61 @@ app.post('/api/login-uid',async (req, res) => {
 
 //////////////////////////////////Profile API///////////////////////////////////////
 //API Update Profile Image
-app.put('/api/update-profile-image/:id', VerifyTokens, upload.single('Profile_Image') ,async (req, res) => {
+app.put('/api/update-profile-image/:id', VerifyTokens, upload.single('Profile_Image'), async (req, res) => {
   const { id } = req.params;
 
-  if(!id || typeof id !== 'string'){
-    return res.send({ message: "ต้องมี ID", status: false });
+  if (!id || typeof id !== 'string') {
+      return res.send({ message: "ต้องมี ID", status: false });
   }
 
   if (!req.file) {
-    return res.send({ message: "ต้องมีภาพประกอบ", status: false });
+      return res.send({ message: "ต้องมีภาพประกอบ", status: false });
   }
 
-  if(req.users_decoded.Users_ID != id){
-    return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  if (req.users_decoded.Users_ID != id) {
+      return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
   }
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
   if (!allowedTypes.includes(req.file.mimetype)) {
-    return res.send({ message: 'ประเภทไฟล์ไม่ถูกต้อง', status: false });
+      return res.send({ message: 'ประเภทไฟล์ไม่ถูกต้อง', status: false });
   }
 
   const sql_check_id = "SELECT COUNT(*) AS count FROM users WHERE Users_ID = ?";
   db.query(sql_check_id, [id], async (err, result) => {
-    if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
+      if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false }); }
 
-    if (result[0].count > 0) {
-      const uniqueName = uuidv4();
-      const ext = path.extname(req.file.originalname);
-      const resizedImagePath = path.join(uploadDir_Profile, `${uniqueName}${ext}`);
+      if (result[0].count > 0) {
+          const uniqueName = uuidv4();
+          const ext = path.extname(req.file.originalname);
+          const resizedImagePath = path.join(uploadDir_Profile, `${uniqueName}${ext}`);
 
-      try {
-        await sharp(req.file.buffer)
-          .resize(1280, 1280) //1280x1280 pixels
-          .toFile(resizedImagePath);
-        const Profile_ImageURL = `/images/profile-images/${uniqueName}${ext}`;
-        const sql = "UPDATE users SET Users_ImageFile = ? WHERE Users_ID = ?";
-        db.query(sql, [Profile_ImageURL, id], (err, result) => {
-          if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });}
-          if(result.affectedRows > 0){
-            res.send({ message: "อัพเดทรูปภาพสำเร็จ",status: true });
-          }else{
-            res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้",status: false });
+          try {
+              await sharp(req.file.buffer)
+                  .resize(1280, 1280) // 1280x1280 pixels
+                  .toFile(resizedImagePath);
+
+              const Profile_ImageURL = `/images/profile-images/${uniqueName}${ext}`;
+              const sql = "UPDATE users SET Users_ImageFile = ? WHERE Users_ID = ?";
+              db.query(sql, [Profile_ImageURL, id], (err, result) => {
+                  if (err) {
+                      return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+                  }
+                  if (result.affectedRows > 0) {
+                      res.send({ message: "อัพเดทรูปภาพสำเร็จ", status: true });
+                  } else {
+                      res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้", status: false });
+                  }
+              });
+          } catch (error) {
+              return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
           }
-        });
-      }catch (error) {
-        return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+      } else {
+          res.send({ message: "ไม่พบผู้ใช้", status: false });
       }
-    }else{
-      res.send({ message: "ไม่พบผู้ใช้",status: false });
-    }
   });
 });
+
 
 //API Delete Profile Image
 app.delete('/api/delete-profile-image/:id', VerifyTokens, async (req, res) => {
@@ -690,6 +694,61 @@ app.put('/api/update-profile/:id' , VerifyTokens  ,async (req, res) => {
     }else{
       res.send({ message: "ไม่พบผู้ใช้",status: false });
     }
+  });
+});
+
+app.put('/api/update-profile-image-web/:id', VerifyTokens, upload.single('Profile_Image'), async (req, res) => {
+  const { id } = req.params;
+
+  if (!id || typeof id !== 'string') {
+      return res.send({ message: "ต้องมี ID", status: false });
+  }
+
+  if (!req.file) {
+      return res.send({ message: "ต้องมีภาพประกอบ", status: false });
+  }
+
+  if (req.users_decoded.UsersType_ID != 2) {
+      return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.send({ message: 'ประเภทไฟล์ไม่ถูกต้อง', status: false });
+  }
+
+  const sql_check_id = "SELECT COUNT(*) AS count FROM users WHERE Users_ID = ?";
+  db.query(sql_check_id, [id], async (err, result) => {
+      if (err) { return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false }); }
+
+      if (result[0].count > 0) {
+          const uniqueName = uuidv4();
+          const ext = path.extname(req.file.originalname);
+          const resizedImagePath = path.join(uploadDir_Profile, `${uniqueName}${ext}`);
+
+          try {
+              await sharp(req.file.buffer)
+                  .resize(1280, 1280) // 1280x1280 pixels
+                  .toFile(resizedImagePath);
+
+              const Profile_ImageURL = `/images/profile-images/${uniqueName}${ext}`;
+              const sql = "UPDATE users SET Users_ImageFile = ? WHERE Users_ID = ?";
+              db.query(sql, [Profile_ImageURL, id], (err, result) => {
+                  if (err) {
+                      return res.status(500).send({ message: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', status: false });
+                  }
+                  if (result.affectedRows > 0) {
+                      res.send({ message: "อัพเดทรูปภาพสำเร็จ", status: true });
+                  } else {
+                      res.send({ message: "ไม่สามารถอัพเดทข้อมูลได้", status: false });
+                  }
+              });
+          } catch (error) {
+              return res.send({ message: "เกิดข้อผิดพลาดในการประมวลผลภาพ", status: false });
+          }
+      } else {
+          res.send({ message: "ไม่พบผู้ใช้", status: false });
+      }
   });
 });
 
@@ -1488,19 +1547,32 @@ app.put('/api/update-profile-web/:id', VerifyTokens ,async (req, res) => {
   if(!Users_DisplayName || !Users_FirstName || !Users_LastName ||
      !Users_Phone || !Users_BirthDate || !UsersGender_ID || !Users_IsActive ||
     typeof Users_DisplayName !== "string" || typeof Users_FirstName !== "string" ||
-    typeof Users_LastName !== "string" || typeof Users_Phone !== "string" ||
-    typeof Users_BirthDate !== "string" || typeof UsersGender_ID !== "string" ||
-    typeof Users_IsActive !== "string"){
+    typeof Users_LastName !== "string" || typeof Users_BirthDate !== "string" 
+  ){
     return res.send({ message: "จำเป็นต้องมีข้อมูล", status: false });
+  }
+
+  if (Users_Phone !== undefined && typeof Users_Phone === "number") {
+    Users_Phone = Users_Phone.toString();
+  }
+
+  if (Users_IsActive !== undefined && typeof Users_IsActive === "number") {
+    Users_IsActive = Users_IsActive.toString();
+  }
+
+  if (UsersGender_ID !== undefined && typeof UsersGender_ID === "number") {
+    UsersGender_ID = UsersGender_ID.toString();
   }
 
   Users_DisplayName = xss(validator.escape(Users_DisplayName))
   Users_FirstName = xss(validator.escape(Users_FirstName))
   Users_LastName = xss(validator.escape(Users_LastName))
-  Users_Phone = xss(validator.escape(Users_Phone))
   Users_BirthDate = xss(validator.escape(Users_BirthDate))
   UsersGender_ID = xss(validator.escape(UsersGender_ID))
   Users_IsActive = xss(validator.escape(Users_IsActive))
+  Users_Phone = Users_Phone ? xss(validator.escape(Users_Phone)) : Users_Phone;
+  Users_IsActive = Users_IsActive ? xss(validator.escape(Users_IsActive)) : Users_IsActive;
+  UsersGender_ID = UsersGender_ID ? xss(validator.escape(UsersGender_ID)) : UsersGender_ID;
 
   if(req.users_decoded.UsersType_ID != 2){
     return res.send({ message: 'คุณไม่สิทธ์ทำรายการนี้', status: false });
