@@ -78,10 +78,10 @@ const upload = multer({
 db.connect();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
-app.use('/images/profile-images', express.static(path.join(__dirname, uploadDir_Profile)));
-app.use('/images/zodiac-images', express.static(path.join(__dirname, uploadDir_Zodiac)));
-app.use('/images/card-images', express.static(path.join(__dirname, uploadDir_Card)));
-app.use('/palmprint-api-python/uploads', express.static(path.join(__dirname, uploadDir_Hand)));
+app.use('/images/profile-images', express.static(uploadDir_Profile));
+app.use('/images/zodiac-images', express.static(uploadDir_Zodiac));
+app.use('/images/card-images', express.static(uploadDir_Card));
+app.use('/palmprint-api-python/uploads', express.static(uploadDir_Hand));
 app.use(cors())
 
 const saltRounds = 14;
